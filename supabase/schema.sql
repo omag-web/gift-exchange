@@ -53,6 +53,10 @@ create table if not exists gx.people (
   last_link_sent_at  timestamptz
 );
 create unique index if not exists people_email_uq on gx.people (lower(email));
+-- PIN sign-in (added after first release; safe to re-run)
+alter table gx.people add column if not exists pin_hash text;
+alter table gx.people add column if not exists pin_fails int not null default 0;
+alter table gx.people add column if not exists pin_locked_until timestamptz;
 
 create table if not exists gx.messages (
   id            uuid primary key default gen_random_uuid(),
@@ -125,7 +129,7 @@ declare p gx.people;
 begin
   select * into p from gx.people where token = p_token;
   if not found or coalesce(p_token,'') = '' then
-    raise exception 'That personal link isn''t valid. Use "Lost your link?" to get a fresh one.';
+    raise exception 'That sign-in has expired. Please sign in again with your email and PIN.';
   end if;
   return p;
 end $$;
@@ -267,7 +271,14 @@ begin
     'participants', coalesce((select jsonb_agg(jsonb_build_object('name', name, 'joinedAt', joined_at) order by joined_at) from gx.people), '[]'::jsonb));
 end $$;
 
-create or replace function public.gx_signup(p_name text, p_email text, p_answers jsonb) returns jsonb
+create or replace function gx.check_pin(p_pin text) returns void
+language plpgsql immutable as $$
+begin
+  if coalesce(p_pin,'') !~ '^[0-9]{4}$' then raise exception 'Your PIN needs to be exactly 4 numbers.'; end if;
+end $$;
+
+drop function if exists public.gx_signup(text, text, jsonb);   -- older version without PIN
+create or replace function public.gx_signup(p_name text, p_email text, p_answers jsonb, p_pin text) returns jsonb
 language plpgsql security definer set search_path = gx, public, extensions as $$
 declare
   c gx.config := gx.cfg();
@@ -281,14 +292,52 @@ begin
   if c.allowed_domain <> '' and v_email not like '%@' || lower(c.allowed_domain) then
     raise exception 'Please use your @% email address.', c.allowed_domain;
   end if;
+  perform gx.check_pin(p_pin);
   if exists (select 1 from gx.people where lower(email) = v_email) then
-    raise exception 'That email is already signed up. Use "Lost your link?" to get your link again.';
+    raise exception 'That email is already signed up. Use "Sign in" with your email and PIN.';
   end if;
-  insert into gx.people (name, email, answers, token)
-  values (v_name, v_email, gx.clean_answers(p_answers), encode(extensions.gen_random_bytes(24), 'hex'))
+  insert into gx.people (name, email, answers, token, pin_hash)
+  values (v_name, v_email, gx.clean_answers(p_answers), encode(extensions.gen_random_bytes(24), 'hex'),
+          extensions.crypt(p_pin, extensions.gen_salt('bf')))
   returning * into p;
   perform gx.queue_link_email(p);
   return jsonb_build_object('token', p.token, 'id', p.id, 'emailEnabled', c.email_enabled);
+end $$;
+
+-- Sign in from any device with email + 4-digit PIN.
+-- Returns {ok:false,error} instead of raising so failed attempts are counted
+-- (5 wrong tries locks that person's sign-in for 15 minutes).
+create or replace function public.gx_login(p_email text, p_pin text) returns jsonb
+language plpgsql security definer set search_path = gx, public, extensions as $$
+declare p gx.people;
+begin
+  select * into p from gx.people where lower(email) = lower(btrim(coalesce(p_email,'')));
+  if not found or p.pin_hash is null then
+    perform pg_sleep(0.5);
+    return jsonb_build_object('ok', false, 'error', 'That email and PIN don''t match. Check both and try again.');
+  end if;
+  if p.pin_locked_until is not null and p.pin_locked_until > now() then
+    return jsonb_build_object('ok', false, 'error', 'Too many tries. Wait 15 minutes, or ask the organizer to reset your PIN.');
+  end if;
+  if extensions.crypt(coalesce(p_pin,''), p.pin_hash) <> p.pin_hash then
+    update gx.people
+       set pin_fails = case when pin_fails + 1 >= 5 then 0 else pin_fails + 1 end,
+           pin_locked_until = case when pin_fails + 1 >= 5 then now() + interval '15 minutes' else pin_locked_until end
+     where id = p.id;
+    perform pg_sleep(0.5);
+    return jsonb_build_object('ok', false, 'error', 'That email and PIN don''t match. Check both and try again.');
+  end if;
+  update gx.people set pin_fails = 0, pin_locked_until = null where id = p.id;
+  return jsonb_build_object('ok', true, 'token', p.token);
+end $$;
+
+create or replace function public.gx_set_pin(p_token text, p_pin text) returns jsonb
+language plpgsql security definer set search_path = gx, public, extensions as $$
+declare p gx.people := gx.me(p_token);
+begin
+  perform gx.check_pin(p_pin);
+  update gx.people set pin_hash = extensions.crypt(p_pin, extensions.gen_salt('bf')), pin_fails = 0, pin_locked_until = null where id = p.id;
+  return jsonb_build_object('ok', true);
 end $$;
 
 create or replace function public.gx_resend_link(p_email text) returns jsonb
@@ -325,7 +374,7 @@ begin
       into received from gx.messages where recipient_id = p.id and giver_id = santa;
   end if;
   return jsonb_build_object(
-    'me', jsonb_build_object('id', p.id, 'name', p.name, 'email', p.email, 'answers', p.answers),
+    'me', jsonb_build_object('id', p.id, 'name', p.name, 'email', p.email, 'answers', p.answers, 'hasPin', p.pin_hash is not null),
     'config', gx.public_config(c), 'phase', ph, 'drawn', c.drawn_at is not null,
     'recipient', recipient, 'sentQuestions', sent, 'receivedQuestions', received);
 end $$;
@@ -491,6 +540,17 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- Gives someone a new random PIN (shown once to the organizer) if they forget theirs.
+create or replace function public.gx_admin_reset_pin(p_key text, p_id uuid) returns jsonb
+language plpgsql security definer set search_path = gx, public, extensions as $$
+declare v_pin text := lpad((floor(random() * 10000))::int::text, 4, '0');
+begin
+  perform gx.check_admin(p_key);
+  update gx.people set pin_hash = extensions.crypt(v_pin, extensions.gen_salt('bf')), pin_fails = 0, pin_locked_until = null where id = p_id;
+  if not found then raise exception 'Person not found.'; end if;
+  return jsonb_build_object('ok', true, 'pin', v_pin);
+end $$;
+
 create or replace function public.gx_admin_change_passcode(p_key text, p_new text) returns jsonb
 language plpgsql security definer set search_path = gx, public, extensions as $$
 begin
@@ -535,7 +595,8 @@ do $$
 declare f text;
 begin
   foreach f in array array[
-    'gx_get_public()', 'gx_signup(text,text,jsonb)', 'gx_resend_link(text)',
+    'gx_get_public()', 'gx_signup(text,text,jsonb,text)', 'gx_resend_link(text)',
+    'gx_login(text,text)', 'gx_set_pin(text,text)', 'gx_admin_reset_pin(text,uuid)',
     'gx_get_me(text)', 'gx_update_me(text,text,jsonb)', 'gx_withdraw_me(text)',
     'gx_ask(text,text)', 'gx_reply(text,uuid,text)',
     'gx_admin_get(text)', 'gx_admin_save(text,jsonb)', 'gx_admin_draw(text)',

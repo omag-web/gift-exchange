@@ -3,9 +3,10 @@
 A festive Secret Santa site for OMAG staff:
 
 - Staff fill out a wish list → their name appears on the **Who's in** board.
-- Each person gets a **personal link** (emailed and shown on screen). That link is the only way to see their match.
+- Each person picks a **4-digit PIN**. Their browser remembers them, and on any other computer or phone they **sign in with email + PIN**. Only they can see their match.
 - At the **reveal time**, names draw automatically (one big loop: nobody gets themselves, no two-person swaps). Everyone opens their link, taps the gift, and sees who they're shopping for plus that person's whole list.
-- Extras: countdown, spending limit and exchange day, **anonymous Q&A** between gifter and giftee, **reveal emails**, **printable lists**, and an **organizer panel**.
+- Extras: countdown, spending limit and exchange day, **anonymous Q&A** between gifter and giftee (with "new" badges), **printable lists**, and an **organizer panel**.
+- **No email setup needed.** On reveal day, send staff one normal Outlook or Teams message: "Names are out, go to the site." (Automatic emails are optional; see step 3.)
 
 ```
 index.html                              ← the whole website (host on GitHub Pages)
@@ -43,9 +44,14 @@ Open `index.html` in a browser. With no Supabase keys filled in, it runs in **de
 3. Host `index.html` on GitHub Pages (for example, a repo `omag-web/gift-exchange` → Settings → Pages → deploy from `main`).
 4. Open `https://<your-site>/#admin`, sign in, and fill in **Settings**: dates, budget, exchange day, and **Site address** (your GitHub Pages URL, used for links in emails). Setting **Only allow emails ending in** to `omag.org` keeps outsiders out.
 
-At this point everything works **without email**: people get their link on screen after signing up, and this browser remembers them.
+That's it. The site is fully working.
 
-## 3. Turn on email (optional, recommended, about 15 min)
+### Updating an existing project
+If you ran an older `schema.sql`, paste the newest one into the SQL Editor and run it again. It keeps all data and passcodes.
+
+## 3. Automatic emails (optional, needs DNS)
+
+Not required, since people sign in with email + PIN. Only set this up if you want automatic link, reveal and question emails. It needs DNS records added to a domain you control.
 
 Emails cover personal links, "Lost your link?", the reveal notice, and anonymous question alerts. They're sent through **Resend** (free tier: 3,000 emails a month).
 
@@ -76,7 +82,8 @@ To test, sign up with your own email. The link email should arrive within about 
 | Reveal right now | Organizer → **🎁 Reveal now** |
 | Draw early but keep it secret | Organizer → **Draw names now (keep sealed)** |
 | Someone joined late after the draw | **Reset the draw**, then draw again. Everyone gets a new match, so do this before the reveal. |
-| Someone lost their link | They use **Lost your link?**, or you click **Email link** next to their name. |
+| Someone forgot their PIN | Organizer → **Reset PIN** next to their name. You'll see a new 4-digit PIN once; give it to them. |
+| Announce the reveal | Send staff an Outlook or Teams message with the site link once names are revealed. |
 | See who has whom | Check **Show me who drew whom** (leave it off if you're playing too). |
 
 ## Next year
@@ -91,6 +98,7 @@ update gx.config set drawn_at = null, emails_sent_at = null, signup_deadline = n
 ## Good to know
 
 - **Free Supabase projects pause after about a week with no activity.** While the exchange is running there's plenty of activity. If you open it in the off-season and it's paused, click **Restore** in the dashboard.
-- Personal links are random 48-character codes. Each one only works for its owner's page.
+- PINs are stored scrambled (bcrypt), never in plain text. Five wrong tries locks that person's sign-in for 15 minutes.
+- Behind the scenes each person also has a random 48-character sign-in code, which their browser keeps after signing up or signing in.
 - Admin actions all require the passcode, and wrong guesses are slowed down. Use a long passcode.
 - The anonymous Q&A never shows names in either direction, on the site or in emails.

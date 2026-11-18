@@ -74,7 +74,8 @@ nav.links a.on{background:rgba(255,255,255,.12);color:#fff}
 nav.links a.cta{background:var(--berry);color:#fff}
 nav.links a.cta:hover{background:var(--berry-2)}
 .brand{min-width:0} nav.links a{white-space:nowrap}
-@media (max-width:560px){.brand{font-size:16px}.brand .mark{width:24px;height:24px}nav.links a{padding:6px 10px;font-size:13px}header.top .wrap{gap:10px;padding:0 14px}}
+.brand span{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:560px){nav.links a[href="#home"]{display:none}.brand{font-size:16px}.brand .mark{width:24px;height:24px}nav.links a{padding:6px 10px;font-size:13px}header.top .wrap{gap:10px;padding:0 14px}}
 
 /* Hero */
 .hero{position:relative;background:radial-gradient(1200px 500px at 80% -10%, rgba(200,162,74,.25), transparent 60%),linear-gradient(180deg,var(--pine) 0%, #0b3226 100%);color:var(--cream);overflow:hidden;padding:64px 0 120px}
@@ -151,7 +152,7 @@ footer{padding:56px 0 40px;color:var(--muted);font-size:13px;text-align:center}
 footer a{color:var(--muted)}
 
 /* Cards / forms */
-.page{padding:44px 0 20px}
+.page{padding-top:44px;padding-bottom:20px}
 .page-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.01em}
 .page-sub{color:var(--muted);margin:8px 0 26px;max-width:62ch;font-size:17px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
@@ -224,6 +225,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pine-3);
 .bubble.a{background:var(--pine);color:var(--cream);align-self:flex-end}
 .bubble.wait{background:transparent;border:1.5px dashed var(--line);color:var(--muted);align-self:flex-end;font-style:italic}
 .askrow{display:flex;gap:8px;margin-top:12px}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--gold);color:#251c05;font-size:11.5px;font-weight:800;margin-left:6px;vertical-align:middle;font-family:var(--body)}
+.badge.new{background:var(--berry);color:#fff;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px;height:22px;padding:0 9px}
+nav.links .badge{margin-left:5px;height:18px;min-width:18px;font-size:11px}
+input.pin{letter-spacing:.5em;font-size:20px;font-weight:700;text-align:center;max-width:170px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.pinbig{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:40px;font-weight:800;letter-spacing:.35em;color:var(--pine);text-align:center;margin:6px 0 2px}
 .askrow input{flex:1}
 
 /* Admin */
@@ -285,7 +291,7 @@ table.people td.r{text-align:right;white-space:nowrap}
 </header>
 <main id="app"><div class="loading"><span class="spinner"></span></div></main>
 <footer>
-  <div class="wrap">Made with care for the OMAG team · <a href="#lost">Lost your link?</a> · <a href="#admin">Organizer</a></div>
+  <div class="wrap">Made with care for the OMAG team · <a href="#lost">Sign in on another device</a> · <a href="#admin">Organizer</a></div>
 </footer>
 <div id="toast" role="status" aria-live="polite"></div>
 <canvas id="confetti"></canvas>
@@ -389,7 +395,7 @@ async function rpc(fn, args = {}) {
    Demo backend — mirrors supabase/schema.sql, stored in localStorage
    ===================================================================== */
 const Mock = {
-  key: "gx_demo_state_v1", mem: null,
+  key: "gx_demo_state_v2", mem: null,
   load() {
     if (this.mem) return this.mem;
     this.mem = safe(() => JSON.parse(localStorage.getItem(this.key))) || this.seed();
@@ -409,7 +415,7 @@ const Mock = {
       ["Riley Brooks", { sweet: "Anything caramel", salty: "Popcorn", drink: "Coke Zero", need: "Lunch bag", want: "Movie theater gift card", scent: "Cotton / clean laundry", colors: "Red", hobbies: "Movies, fishing", stores: "Bass Pro, Chili's", size: "2XL" }],
     ].map(([name, answers], i) => ({
       id: this.uid(), name, email: name.toLowerCase().replace(/\s+/g, ".") + "@example.org", answers,
-      token: "seed-" + i, assignedTo: null, joinedAt: new Date(now - (8 - i) * day * 0.6).toISOString(), updatedAt: null,
+      token: "seed-" + i, pin: "1234", pinFails: 0, lockedUntil: 0, assignedTo: null, joinedAt: new Date(now - (8 - i) * day * 0.6).toISOString(), updatedAt: null,
     }));
     const y = new Date().getFullYear();
     return {
@@ -424,7 +430,7 @@ const Mock = {
   },
   me(s, token) {
     const p = s.people.find(x => x.token === token && token);
-    if (!p) throw new Error("That personal link isn't valid. Use \"Lost your link?\" to get a fresh one.");
+    if (!p) throw new Error("That sign-in has expired. Please sign in again with your email and PIN.");
     return p;
   },
   admin(s, key) { if (key !== s.adminKey) throw new Error("Incorrect admin passcode."); },
@@ -461,16 +467,37 @@ const Mock = {
       return { config: this.pub(s.config), phase: phaseOf(s.config), emailEnabled: s.config.emailEnabled, now: new Date().toISOString(),
         participants: [...s.people].sort((a, b) => a.joinedAt.localeCompare(b.joinedAt)).map(p => ({ name: p.name, joinedAt: p.joinedAt })) };
     },
-    gx_signup(s, { p_name, p_email, p_answers }) {
+    gx_signup(s, { p_name, p_email, p_answers, p_pin }) {
       const c = s.config, name = String(p_name || "").trim().slice(0, 80), email = String(p_email || "").trim().toLowerCase();
       if (phaseOf(c) !== "open") throw new Error("Sign-ups are closed.");
       if (!name) throw new Error("Please enter your name.");
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Please enter a valid email address.");
       if (c.allowedDomain && !email.endsWith("@" + c.allowedDomain.toLowerCase())) throw new Error(`Please use your @${c.allowedDomain} email address.`);
-      if (s.people.some(p => p.email === email)) throw new Error("That email is already signed up. Use \"Lost your link?\" to get your link again.");
-      const p = { id: this.uid(), name, email, answers: this.clean(p_answers), token: "demo-" + this.uid(), assignedTo: null, joinedAt: new Date().toISOString(), updatedAt: null };
+      if (!/^[0-9]{4}$/.test(String(p_pin || ""))) throw new Error("Your PIN needs to be exactly 4 numbers.");
+      if (s.people.some(p => p.email === email)) throw new Error("That email is already signed up. Use \"Sign in\" with your email and PIN.");
+      const p = { id: this.uid(), name, email, answers: this.clean(p_answers), token: "demo-" + this.uid(), pin: p_pin, pinFails: 0, lockedUntil: 0, assignedTo: null, joinedAt: new Date().toISOString(), updatedAt: null };
       s.people.push(p);
       return { token: p.token, id: p.id, emailEnabled: c.emailEnabled };
+    },
+    gx_login(s, { p_email, p_pin }) {
+      const bad = { ok: false, error: "That email and PIN don't match. Check both and try again." };
+      const p = s.people.find(x => x.email === String(p_email || "").trim().toLowerCase());
+      if (!p || !p.pin) return bad;
+      if (p.lockedUntil > Date.now()) return { ok: false, error: "Too many tries. Wait 15 minutes, or ask the organizer to reset your PIN." };
+      if (String(p_pin || "") !== p.pin) { p.pinFails = (p.pinFails || 0) + 1; if (p.pinFails >= 5) { p.pinFails = 0; p.lockedUntil = Date.now() + 9e5; } return bad; }
+      p.pinFails = 0; p.lockedUntil = 0;
+      return { ok: true, token: p.token };
+    },
+    gx_set_pin(s, { p_token, p_pin }) {
+      const p = this.me(s, p_token);
+      if (!/^[0-9]{4}$/.test(String(p_pin || ""))) throw new Error("Your PIN needs to be exactly 4 numbers.");
+      p.pin = p_pin; p.pinFails = 0; p.lockedUntil = 0; return { ok: true };
+    },
+    gx_admin_reset_pin(s, { p_key, p_id }) {
+      this.admin(s, p_key);
+      const p = s.people.find(x => x.id === p_id); if (!p) throw new Error("Person not found.");
+      p.pin = String(Math.floor(Math.random() * 10000)).padStart(4, "0"); p.pinFails = 0; p.lockedUntil = 0;
+      return { ok: true, pin: p.pin };
     },
     gx_resend_link(s) { return { ok: !!s.config.emailEnabled, emailEnabled: !!s.config.emailEnabled }; },
     gx_get_me(s, { p_token }) {
@@ -484,7 +511,7 @@ const Mock = {
         received = s.messages.filter(m => m.recipientId === p.id && santa && m.giverId === santa.id);
       }
       const strip = m => ({ id: m.id, question: m.question, answer: m.answer, askedAt: m.askedAt, answeredAt: m.answeredAt });
-      return { me: { id: p.id, name: p.name, email: p.email, answers: p.answers }, config: this.pub(c), phase: ph, drawn: !!c.drawnAt,
+      return { me: { id: p.id, name: p.name, email: p.email, answers: p.answers, hasPin: !!p.pin }, config: this.pub(c), phase: ph, drawn: !!c.drawnAt,
         recipient, sentQuestions: sent.map(strip), receivedQuestions: received.map(strip) };
     },
     gx_update_me(s, { p_token, p_name, p_answers }) {
@@ -563,17 +590,32 @@ async function render() {
   renderNav(r);
   const app = $("#app");
   app.innerHTML = `<div class="loading"><span class="spinner"></span></div>`;
-  try { await ROUTES[r](app); }
+  try { await ROUTES[r](app); refreshBadge(r); }
   catch (e) { app.innerHTML = `<div class="wrap page"><div class="card"><h2>Hmm, something went wrong</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-pine" href="#home">Back to home</a></div></div>`; }
   window.scrollTo(0, 0);
 }
+let BADGE = 0;
 function renderNav(r) {
   const tok = getToken();
   const open = !PUB || PUB.phase === "open";
   const items = [["home", "Home"]];
-  if (tok) items.push(["me", "My page"]);
-  else if (open) items.push(["join", "Join the exchange", true]);
-  $("#nav").innerHTML = items.map(([k, label, cta]) => `<a href="#${k}" class="${cta ? "cta" : ""} ${r === k ? "on" : ""}">${esc(label)}</a>`).join("");
+  if (tok) items.push(["me", "My page", false, BADGE]);
+  else { items.push(["lost", "Sign in"]); if (open) items.push(["join", "Join", true]); }
+  $("#nav").innerHTML = items.map(([k, label, cta, b]) => `<a href="#${k}" class="${cta ? "cta" : ""} ${r === k ? "on" : ""}">${esc(label)}${b ? `<span class="badge" aria-label="${b} new">${b}</span>` : ""}</a>`).join("");
+}
+// New-activity count: questions waiting for your answer + answers you haven't seen yet.
+function activityCount(me) {
+  if (!me || !me.recipient) return 0;
+  const seen = local.get("gx_ans_seen_" + me.me.id) || "";
+  const waiting = (me.receivedQuestions || []).filter(m => !m.answer).length;
+  const fresh = (me.sentQuestions || []).filter(m => m.answeredAt && m.answeredAt > seen).length;
+  return waiting + fresh;
+}
+async function refreshBadge(r) {
+  if (!getToken()) { BADGE = 0; return; }
+  try { const me = (r === "me" && ME) ? ME : await rpc("gx_get_me", { p_token: getToken() }); BADGE = activityCount(me); }
+  catch { BADGE = 0; }
+  renderNav(route());
 }
 async function loadPublic() {
   PUB = await rpc("gx_get_public");
@@ -615,16 +657,16 @@ async function viewHome(app) {
   if (d.phase === "revealed") {
     headline = `The names are <em>out!</em>`;
     lead = "Open your personal page to see who you're shopping for and their whole wish list.";
-    actions = tok ? `<a class="btn btn-gold" href="#me">🎁 See who I drew</a>` : `<a class="btn btn-gold" href="#lost">Find my personal link</a>`;
+    actions = tok ? `<a class="btn btn-gold" href="#me">🎁 See who I drew</a>` : `<a class="btn btn-gold" href="#lost">🎁 Sign in to see who I drew</a>`;
   } else if (d.phase === "closed") {
     headline = `The list is <em>sealed.</em>`;
-    lead = "Sign-ups are closed. Names will be drawn and revealed soon. Keep an eye on your inbox.";
-    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>` : "";
+    lead = "Sign-ups are closed. Names will be drawn and revealed soon. Check back here at reveal time!";
+    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>` : `<a class="btn btn-gold" href="#lost">Sign in</a>`;
   } else {
     headline = `Let's spread some <em>cheer.</em>`;
     lead = "Fill out your wish list, we'll draw names, and on reveal day you'll find out who you're shopping for, with their list ready to go.";
     actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>`
-                  : `<a class="btn btn-primary" href="#join">Join the exchange</a><a class="btn btn-ghost" href="#lost" style="color:var(--cream)">Already joined?</a>`;
+                  : `<a class="btn btn-primary" href="#join">Join the exchange</a><a class="btn btn-ghost" href="#lost" style="color:var(--cream)">Already joined? Sign in</a>`;
   }
 
   const people = d.participants;
@@ -711,11 +753,13 @@ async function viewJoin(app) {
       <div class="grid2">
         <label class="f"><span>Your name</span><input type="text" name="name" required maxlength="80" autocomplete="name" placeholder="First and last name"></label>
         <label class="f"><span>Your email</span><input type="email" name="email" required maxlength="200" autocomplete="email" placeholder="${dom ? "you@" + esc(dom) : "you@omag.org"}"></label>
+        <label class="f full"><span>Pick a 4-digit PIN</span><small>You'll use your email and this PIN to sign in from another computer or your phone. Don't use your bank PIN!</small>
+          <input class="pin" type="text" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="••••" required></label>
       </div>
       <div class="divider">your wish list</div>
       <div class="grid2">${CONFIG.QUESTIONS.map(q => fieldHTML(q, "")).join("")}</div>
       <div id="join-err"></div>
-      <div class="form-actions"><button class="btn btn-primary" type="submit">🎁 Add me to the exchange</button><span style="color:var(--muted);font-size:13px">We'll ${d.emailEnabled ? "email you" : "give you"} a personal link to get back in.</span></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">🎁 Add me to the exchange</button><span style="color:var(--muted);font-size:13px">You can edit your list any time.</span></div>
     </form>
   </div>`;
   $("#join-form").addEventListener("submit", async e => {
@@ -724,7 +768,7 @@ async function viewJoin(app) {
     $("#join-err").innerHTML = "";
     btn.disabled = true; btn.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Saving…`;
     try {
-      const r = await rpc("gx_signup", { p_name: f.elements.name.value, p_email: f.elements.email.value, p_answers: collectAnswers(f) });
+      const r = await rpc("gx_signup", { p_name: f.elements.name.value, p_email: f.elements.email.value, p_answers: collectAnswers(f), p_pin: f.elements.pin.value.trim() });
       setToken(r.token);
       showJoined(app, r, d);
       burst();
@@ -746,8 +790,10 @@ function showJoined(app, r, d) {
     <div class="card rcard" style="text-align:center;max-width:640px;margin:0 auto">
       <div style="font-size:54px">🎉</div>
       <h1 class="page-title" style="margin-top:6px">You're on the list!</h1>
-      <p class="sub" style="margin-top:10px">${r.emailEnabled ? "We just emailed you a personal link. " : ""}This link is how you'll see who you drew on reveal day, so ${r.emailEnabled ? "keep that email handy" : "save it somewhere safe"}. This browser will also remember you.</p>
-      <div class="linkbox"><input type="text" readonly value="${esc(link)}" aria-label="Your personal link"><button class="btn btn-pine btn-sm" type="button" id="copy-link">Copy</button></div>
+      <p class="sub" style="margin-top:10px">This browser will remember you. On reveal day, come back here to see who you drew. On any other computer or phone, just tap <b>Sign in</b> and use your email and PIN.</p>
+      <p class="note" style="text-align:left">🔢 <b>Remember your PIN.</b> If you forget it, the organizer can reset it for you.</p>
+      <details style="margin:14px 0;text-align:left"><summary style="cursor:pointer;color:var(--muted);font-size:14px">Or save a personal sign-in link</summary>
+        <div class="linkbox"><input type="text" readonly value="${esc(link)}" aria-label="Your personal link"><button class="btn btn-pine btn-sm" type="button" id="copy-link">Copy</button></div></details>
       <div class="form-actions" style="justify-content:center"><a class="btn btn-primary" href="#me">Go to my page</a><a class="btn btn-ghost" href="#home">See who's in</a></div>
     </div>
   </div>`;
@@ -756,23 +802,40 @@ function showJoined(app, r, d) {
 
 async function viewLost(app) {
   const d = await loadPublic(); renderNav("lost");
+  if (getToken()) { location.hash = "#me"; return; }
   app.innerHTML = `
-  <div class="wrap page" style="max-width:640px">
-    <h1 class="page-title">Lost your link?</h1>
-    <p class="page-sub">${d.emailEnabled ? "Enter the email you signed up with and we'll send your personal link again." : "Email isn't turned on for this exchange yet. Ask the organizer to resend your link."}</p>
-    ${d.emailEnabled ? `<form class="card" id="lost-form">
-      <label class="f"><span>Your email</span><input type="email" name="email" required autocomplete="email"></label>
-      <div id="lost-msg"></div>
-      <div class="form-actions"><button class="btn btn-primary" type="submit">Email me my link</button></div>
-    </form>` : `<a class="btn btn-pine" href="#home">Back to home</a>`}
+  <div class="wrap page" style="max-width:600px">
+    <h1 class="page-title">Sign in</h1>
+    <p class="page-sub">Use the email and 4-digit PIN you picked when you joined.</p>
+    <form class="card" id="login-form" novalidate>
+      <label class="f" style="margin-bottom:16px"><span>Your email</span><input type="email" name="email" required autocomplete="email"></label>
+      <label class="f"><span>Your PIN</span><input class="pin" type="password" name="pin" inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="••••" required></label>
+      <div id="login-msg"></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Sign in</button>
+        ${d.phase === "open" ? `<a href="#join" style="font-size:14px">Not signed up yet? Join</a>` : ""}</div>
+      <p style="font-size:13px;color:var(--muted);margin:18px 0 0">Forgot your PIN? Ask the organizer to reset it.</p>
+    </form>
+    ${d.emailEnabled ? `<form class="card" id="lost-form"><h2 style="font-size:20px">Or email me a sign-in link</h2>
+      <div class="askrow"><input type="email" name="email" required autocomplete="email" placeholder="Your email" aria-label="Your email"><button class="btn btn-pine btn-sm" type="submit">Send link</button></div>
+      <div id="lost-msg"></div></form>` : ""}
   </div>`;
+  $("#login-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target, btn = $("button", f);
+    $("#login-msg").innerHTML = ""; btn.disabled = true;
+    try {
+      const r = await rpc("gx_login", { p_email: f.elements.email.value, p_pin: f.elements.pin.value.trim() });
+      if (!r || !r.ok) throw new Error((r && r.error) || "Sign-in failed.");
+      setToken(r.token); toast("Welcome back! 🎄"); location.hash = "#me";
+    } catch (err) { $("#login-msg").innerHTML = `<div class="err">${esc(err.message)}</div>`; btn.disabled = false; }
+  });
   const f = $("#lost-form");
   if (f) f.addEventListener("submit", async e => {
     e.preventDefault();
     const btn = $("button", f); btn.disabled = true;
     try {
       await rpc("gx_resend_link", { p_email: f.elements.email.value });
-      $("#lost-msg").innerHTML = `<p class="note" style="margin-top:16px">If that email is on the list, your link is on its way. Check your inbox (and junk folder) in a minute or two.</p>`;
+      $("#lost-msg").innerHTML = `<p class="note" style="margin-top:12px">If that email is on the list, your link is on its way.</p>`;
     } catch (err) { $("#lost-msg").innerHTML = `<div class="err">${esc(err.message)}</div>`; btn.disabled = false; }
   });
 }
@@ -783,15 +846,13 @@ async function viewMe(app) {
   const tok = getToken();
   if (!tok) {
     await loadPublic(); renderNav("me");
-    app.innerHTML = `<div class="wrap page" style="max-width:640px"><div class="card"><h2>Open your personal link</h2>
-      <p class="sub">Your page opens from the personal link you got when you signed up. Use it on this device, or have it emailed again.</p>
-      <div class="actions"><a class="btn btn-primary" href="#lost">Email me my link</a>${!PUB || PUB.phase === "open" ? `<a class="btn btn-ghost" href="#join">Join the exchange</a>` : ""}</div></div></div>`;
+    location.hash = "#lost";
     return;
   }
   try { ME = await rpc("gx_get_me", { p_token: tok }); }
   catch (e) {
     setToken(null); renderNav("me");
-    app.innerHTML = `<div class="wrap page" style="max-width:640px"><div class="card"><h2>We couldn't find you</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-primary" href="#lost">Email me my link</a></div></div>`;
+    app.innerHTML = `<div class="wrap page" style="max-width:640px"><div class="card"><h2>We couldn't find you</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-primary" href="#lost">Sign in</a></div></div>`;
     return;
   }
   PUB = PUB || { phase: ME.phase, config: ME.config };
@@ -841,6 +902,11 @@ async function viewMe(app) {
     bindRecipient();
   };
   bindRecipient(); bindAsk(); bindReceived(); bindMyList();
+  markAnswersSeen();
+}
+function markAnswersSeen() {
+  const latest = (ME.sentQuestions || []).map(m => m.answeredAt || "").sort().pop();
+  if (latest) local.set("gx_ans_seen_" + ME.me.id, latest);
 }
 
 function wishHTML(answers) {
@@ -866,10 +932,12 @@ function bindRecipient() { const b = $("#print-r"); if (b) b.onclick = () => pri
 
 function askHTML() {
   const r = ME.recipient, list = ME.sentQuestions || [];
-  return `<h2>Ask ${esc(firstName(r.name))} a question</h2>
+  const seen = local.get("gx_ans_seen_" + ME.me.id) || "";
+  const fresh = list.filter(m => m.answeredAt && m.answeredAt > seen).length;
+  return `<h2>Ask ${esc(firstName(r.name))} a question${fresh ? `<span class="badge new">${fresh} new answer${fresh > 1 ? "s" : ""}</span>` : ""}</h2>
     <p class="sub">Not sure about a size or a flavor? Ask here. ${esc(firstName(r.name))} will get it from "your Secret Santa" and won't know it's you.</p>
     <div class="thread">${list.map(m => `<div class="bubble q"><small>You asked</small>${esc(m.question)}</div>
-      ${m.answer ? `<div class="bubble a"><small>${esc(firstName(r.name))} said</small>${esc(m.answer)}</div>` : `<div class="bubble wait">Waiting for an answer…</div>`}`).join("")}</div>
+      ${m.answer ? `<div class="bubble a"><small>${esc(firstName(r.name))} said${m.answeredAt > seen ? " · new" : ""}</small>${esc(m.answer)}</div>` : `<div class="bubble wait">Waiting for an answer… Check back later.</div>`}`).join("")}</div>
     <form class="askrow" id="ask-form"><input type="text" name="q" maxlength="500" placeholder="e.g. Do you wear a medium or large?" aria-label="Your question"><button class="btn btn-primary btn-sm" type="submit">Send</button></form>`;
 }
 function bindAsk() {
@@ -881,15 +949,16 @@ function bindAsk() {
     try {
       await rpc("gx_ask", { p_token: getToken(), p_question: q });
       ME = await rpc("gx_get_me", { p_token: getToken() });
-      $("#ask-card").innerHTML = askHTML(); bindAsk();
+      $("#ask-card").innerHTML = askHTML(); bindAsk(); markAnswersSeen();
       toast("Sent anonymously 🤫");
     } catch (err) { toast(err.message); $("button", f).disabled = false; }
   };
 }
 function receivedHTML() {
   const list = ME.receivedQuestions || [];
-  return `<h2>From your Secret Santa</h2>
-    <p class="sub">${list.length ? "Your Santa asked you something. Your answer goes straight back to them." : "If your Secret Santa has a question for you, it'll show up here."}</p>
+  const waiting = list.filter(m => !m.answer).length;
+  return `<h2>From your Secret Santa${waiting ? `<span class="badge new">${waiting} new</span>` : ""}</h2>
+    <p class="sub">${list.length ? "Your Santa asked you something. Your answer goes straight back to them. You won't see who they are until exchange day." : "If your Secret Santa has a question for you, it'll show up here. Check back now and then!"}</p>
     <div class="thread">${list.map(m => `<div class="bubble q"><small>Your Secret Santa asked</small>${esc(m.question)}</div>
       ${m.answer ? `<div class="bubble a"><small>You said</small>${esc(m.answer)}</div>`
         : `<form class="askrow reply-form" data-id="${esc(m.id)}" style="align-self:stretch"><input type="text" name="a" maxlength="500" placeholder="Your answer" aria-label="Your answer"><button class="btn btn-pine btn-sm" type="submit">Reply</button></form>`}`).join("")}</div>`;
@@ -902,7 +971,7 @@ function bindReceived() {
     try {
       await rpc("gx_reply", { p_token: getToken(), p_id: f.dataset.id, p_answer: a });
       ME = await rpc("gx_get_me", { p_token: getToken() });
-      $("#recv-card").innerHTML = receivedHTML(); bindReceived();
+      $("#recv-card").innerHTML = receivedHTML(); bindReceived(); refreshBadge("me");
       toast("Answer sent!");
     } catch (err) { toast(err.message); $("button", f).disabled = false; }
   });
@@ -921,7 +990,9 @@ function myListHTML(editing = false) {
       <button class="btn btn-ghost btn-sm" id="print-mine" type="button">🖨️ Print</button>
       ${!ME.drawn ? `<button class="btn btn-danger btn-sm" id="withdraw" type="button">Leave the exchange</button>` : ""}
     </div>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:16px">Signed in as ${esc(me.email)} on this device. <a href="#" id="signout">Not you?</a></p>`;
+    ${!me.hasPin ? `<p class="note" style="margin-top:16px">🔢 Set a PIN so you can sign in from your phone or another computer.</p>` : ""}
+    <form class="askrow" id="pin-form" style="margin-top:16px"><input class="pin" type="password" name="pin" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="new-password" aria-label="New 4-digit PIN"><button class="btn btn-ghost btn-sm" type="submit">${me.hasPin ? "Change my PIN" : "Set my PIN"}</button></form>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:16px">Signed in as ${esc(me.email)} on this device. <a href="#" id="signout">Sign out</a></p>`;
 }
 function bindMyList() {
   const box = $("#mylist");
@@ -929,6 +1000,11 @@ function bindMyList() {
   const c = $("#cancel-edit"); if (c) c.onclick = () => { box.innerHTML = myListHTML(); bindMyList(); };
   const p = $("#print-mine"); if (p) p.onclick = () => printList(`${ME.me.name}'s wish list`, ME.me.answers);
   const so = $("#signout"); if (so) so.onclick = ev => { ev.preventDefault(); setToken(null); location.hash = "#home"; };
+  const pf = $("#pin-form"); if (pf) pf.onsubmit = async ev => {
+    ev.preventDefault();
+    try { await rpc("gx_set_pin", { p_token: getToken(), p_pin: pf.elements.pin.value.trim() }); ME.me.hasPin = true; toast("PIN saved. 🔢"); box.innerHTML = myListHTML(); bindMyList(); }
+    catch (err) { toast(err.message); }
+  };
   const w = $("#withdraw"); if (w) w.onclick = async () => {
     if (!await confirmBox("Leave the exchange?", "Your wish list will be deleted and your name removed from the board.", "Leave", true)) return;
     try { await rpc("gx_withdraw_me", { p_token: getToken() }); setToken(null); toast("You've left the exchange."); location.hash = "#home"; }
@@ -1001,7 +1077,7 @@ async function viewAdmin(app) {
         <label class="f full"><span>Note on the home page</span><small>Optional, e.g. "Wrap your gift and add a name tag!"</small><input type="text" name="notes" value="${esc(c.notes)}"></label>
         <label class="f"><span>Only allow emails ending in</span><small>e.g. omag.org (leave blank to allow any)</small><input type="text" name="allowedDomain" value="${esc(c.allowedDomain)}"></label>
         <label class="f"><span>Site address</span><small>Used for links in emails</small><input type="text" name="siteUrl" value="${esc(c.siteUrl || "")}" placeholder="https://…"></label>
-        <label class="check full"><input type="checkbox" name="emailEnabled" ${c.emailEnabled ? "checked" : ""}><span><b>Send emails</b> (personal links, reveal notices, anonymous questions). Turn on after email setup is done.</span></label>
+        <label class="check full"><input type="checkbox" name="emailEnabled" ${c.emailEnabled ? "checked" : ""}><span><b>Send emails</b> (optional; only if the email sender is set up; see README). People can always sign in with email + PIN.</span></label>
         <label class="check full"><input type="checkbox" name="showMatchesToAdmin" ${c.showMatchesToAdmin ? "checked" : ""}><span><b>Show me who drew whom</b>. Leave off if you're participating too and want to be surprised.</span></label>
       </div>
       <div class="form-actions"><button class="btn btn-primary" type="submit">Save settings</button></div>
@@ -1013,7 +1089,7 @@ async function viewAdmin(app) {
       ${people.length ? `<div class="tablewrap"><table class="people"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>List</th>${c.showMatchesToAdmin && c.drawnAt ? "<th>Is giving to</th>" : ""}<th></th></tr></thead><tbody>
       ${people.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.email)}</td><td>${esc(fmtDay(p.joinedAt))}</td><td>${p.answerCount} answers</td>
         ${c.showMatchesToAdmin && c.drawnAt ? `<td>${esc(p.assignedToName || "—")}</td>` : ""}
-        <td class="r">${c.emailEnabled ? `<button class="btn btn-ghost btn-sm" data-link="${esc(p.id)}">Email link</button> ` : ""}${!c.drawnAt ? `<button class="btn btn-danger btn-sm" data-remove="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>` : ""}</td></tr>`).join("")}
+        <td class="r"><button class="btn btn-ghost btn-sm" data-pin="${esc(p.id)}" data-name="${esc(p.name)}">Reset PIN</button> ${c.emailEnabled ? `<button class="btn btn-ghost btn-sm" data-link="${esc(p.id)}">Email link</button> ` : ""}${!c.drawnAt ? `<button class="btn btn-danger btn-sm" data-remove="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>` : ""}</td></tr>`).join("")}
       </tbody></table></div>` : `<div class="empty">No one yet.</div>`}
     </div>
 
@@ -1040,6 +1116,11 @@ async function viewAdmin(app) {
       act("gx_admin_reset", "Draw reset.");
   });
   $$("[data-link]").forEach(b => b.onclick = () => act("gx_admin_send_link", "Link email queued.", { p_id: b.dataset.link }));
+  $$("[data-pin]").forEach(b => b.onclick = async () => {
+    if (!await confirmBox(`Reset ${b.dataset.name}'s PIN?`, "They'll get a new random 4-digit PIN. You'll see it once, so give it to them in person or by Teams.", "Reset PIN")) return;
+    try { const r = await rpc("gx_admin_reset_pin", { p_key: key, p_id: b.dataset.pin }); showPin(b.dataset.name, r.pin); }
+    catch (e) { toast(e.message, 5000); }
+  });
   $$("[data-remove]").forEach(b => b.onclick = async () => {
     if (await confirmBox(`Remove ${b.dataset.name}?`, "Their wish list is deleted.", "Remove", true)) act("gx_admin_remove", "Removed.", { p_id: b.dataset.remove });
   });
@@ -1060,6 +1141,15 @@ async function viewAdmin(app) {
     try { await rpc("gx_admin_change_passcode", { p_key: key, p_new: v }); setAdminKey(v); toast("Passcode updated."); e.target.reset(); }
     catch (err) { toast(err.message); }
   };
+}
+function showPin(name, pin) {
+  const bg = document.createElement("div");
+  bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="text-align:center"><h3>New PIN for ${esc(name)}</h3>
+    <div class="pinbig">${esc(pin)}</div><p>Give this to ${esc(firstName(name))}. They can change it on their page after signing in.</p>
+    <div class="actions" style="justify-content:center"><button class="btn btn-pine btn-sm">Done</button></div></div>`;
+  $("button", bg).onclick = () => bg.remove();
+  document.body.appendChild(bg);
 }
 function adminLogin(app, err) {
   app.innerHTML = `<div class="wrap page" style="max-width:520px">
