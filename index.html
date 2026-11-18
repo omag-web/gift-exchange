@@ -83,7 +83,8 @@ button,input,select,textarea{font:inherit}
 header.top{background:var(--pine);color:var(--cream);position:sticky;top:0;z-index:20;border-bottom:1px solid rgba(255,255,255,.08)}
 header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--cream);font-family:var(--display);font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand .mark{width:30px;height:30px;flex:none}
+.brand .logo{height:21px;width:auto;flex:none;display:block}
+.brand-sep{width:1px;height:22px;background:rgba(251,245,233,.3);flex:none}
 nav.links{margin-left:auto;display:flex;gap:4px}
 nav.links a{color:rgba(251,245,233,.85);text-decoration:none;font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
 nav.links a:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -92,7 +93,7 @@ nav.links a.cta{background:var(--berry);color:#fff}
 nav.links a.cta:hover{background:var(--berry-2)}
 .brand{min-width:0} nav.links a{white-space:nowrap}
 .brand span{overflow:hidden;text-overflow:ellipsis}
-@media (max-width:560px){nav.links a[href="#home"]{display:none}.brand{font-size:16px}.brand .mark{width:24px;height:24px}nav.links a{padding:6px 10px;font-size:13px}header.top .wrap{gap:10px;padding:0 14px}}
+@media (max-width:560px){nav.links a[href="#home"]{display:none}.brand{font-size:16px}.brand .logo{height:17px}nav.links a{padding:6px 10px;font-size:13px}header.top .wrap{gap:10px;padding:0 14px}}
 
 /* Hero */
 .hero{position:relative;background:radial-gradient(1200px 500px at 80% -10%, rgba(200,162,74,.25), transparent 60%),linear-gradient(180deg,var(--pine) 0%, #0b3226 100%);color:var(--cream);overflow:hidden;padding:64px 0 120px}
@@ -311,8 +312,8 @@ table.people td.r{text-align:right;white-space:nowrap}
 <header class="top">
   <div class="wrap">
     <a class="brand" href="#home">
-      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="13" width="22" height="16" rx="2.5" fill="#b0283f"/><rect x="3" y="9" width="26" height="6" rx="2" fill="#c2304a"/><rect x="14" y="9" width="4" height="20" fill="#c8a24a"/><path d="M16 9c-3-6-9-5-8-1 1 3 6 2 8 1zm0 0c3-6 9-5 8-1-1 3-6 2-8 1z" fill="none" stroke="#c8a24a" stroke-width="2"/></svg>
-      <span id="brand-name">OMAG Gift Exchange</span>
+      <img class="logo" src="omag-logo.png" alt="OMAG" width="96" height="21"><span class="brand-sep" aria-hidden="true"></span>
+      <span id="brand-name">Secret Santa</span>
     </a>
     <nav class="links" id="nav"></nav>
   </div>
@@ -622,6 +623,7 @@ async function render() {
   catch (e) { app.innerHTML = `<div class="wrap page"><div class="card"><h2>Hmm, something went wrong</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-pine" href="#home">Back to home</a></div></div>`; }
   window.scrollTo(0, 0);
 }
+function setBrand(name) { $("#brand-name").textContent = String(name || "Secret Santa").replace(/^OMAG\s+/i, "") || "Secret Santa"; }
 let BADGE = 0;
 function renderNav(r) {
   const tok = getToken();
@@ -647,7 +649,7 @@ async function refreshBadge(r) {
 }
 async function loadPublic() {
   PUB = await rpc("gx_get_public");
-  $("#brand-name").textContent = PUB.config.eventName || "Gift Exchange";
+  setBrand(PUB.config.eventName || "Gift Exchange");
   document.title = PUB.config.eventName || "Gift Exchange";
   return PUB;
 }
@@ -911,7 +913,7 @@ async function viewMe(app) {
   }
   PUB = PUB || { phase: ME.phase, config: ME.config };
   PUB.phase = ME.phase;
-  $("#brand-name").textContent = ME.config.eventName;
+  setBrand(ME.config.eventName);
   renderNav("me");
   const c = ME.config, me = ME.me, rev = ME.phase === "revealed" && ME.recipient;
 
@@ -1088,7 +1090,7 @@ async function viewAdmin(app) {
   try { d = await rpc("gx_admin_get", { p_key: key }); }
   catch (e) { setAdminKey(null); return adminLogin(app, e.message); }
   const c = d.config, ph = d.phase, people = d.people;
-  $("#brand-name").textContent = c.eventName;
+  setBrand(c.eventName);
 
   app.innerHTML = `
   <div class="wrap page">
