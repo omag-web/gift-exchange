@@ -926,7 +926,7 @@ async function viewMe(app) {
   else if (ME.phase === "closed") status = `<div class="status"><div class="ic">🔒</div><div><b>You're in, ${esc(firstName(me.name))}. Sign-ups are closed.</b><span>${c.revealAt ? "Names drawn " + esc(fmtDate(c.revealAt)) + "." : "Names will be drawn soon."} You can still update your list.</span></div></div>`;
   else status = `<div class="status"><div class="ic">✅</div><div><b>You're in, ${esc(firstName(me.name))}!</b><span>${c.revealAt ? "Names drawn " + esc(fmtDate(c.revealAt)) + ". " : ""}Edit your list any time.</span></div></div>`;
 
-  const seenKey = "gx_seen_" + me.id;
+  const seenKey = "gx_seen_" + me.id + "_" + (ME.recipient ? ME.recipient.name : "");
   const seen = !!local.get(seenKey);
 
   app.innerHTML = `
