@@ -17,24 +17,41 @@ const CONFIG = {
   SUPABASE_URL: "https://jsfrumccogrzhfqyhsqg.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_I3PreoIqtPkmhMu5f7lFKw_cW44ynHX",
 
-  // The questions on the wish-list form. Change, add or remove freely.
-  //   id:   short unique key (letters, numbers, - or _). Don't change an id
-  //         once people have signed up, or their old answer won't show.
-  //   type: "text", "textarea" or "select" (select needs options: [...])
+  // The questions on the wish-list form (OMAG "Favorite Things" sheet).
+  //   id:      short unique key (letters, numbers, - or _). Don't change an id
+  //            once people have signed up, or their old answer won't show.
+  //   type:    "text", "textarea", "select" (needs options) or
+  //            "choice" (tap-to-pick buttons; optional detail box)
+  //   section: questions are grouped under these headings on the form
   QUESTIONS: [
-    { id: "sweet",   label: "Something sweet I love",        type: "text",     placeholder: "Dark chocolate sea-salt caramels" },
-    { id: "salty",   label: "Favorite salty snack",          type: "text",     placeholder: "Kettle chips, cashews…" },
-    { id: "drink",   label: "Favorite drink",                type: "text",     placeholder: "Coffee order, soda, tea…" },
-    { id: "need",    label: "Something I need",              type: "text",     placeholder: "A new phone charger" },
-    { id: "want",    label: "Something I want",              type: "text",     placeholder: "Fuzzy socks, a good book…" },
-    { id: "scent",   label: "Scents I like",                 type: "text",     placeholder: "Vanilla, pine, citrus…" },
-    { id: "colors",  label: "Favorite colors",               type: "text",     placeholder: "Navy and gold" },
-    { id: "hobbies", label: "Hobbies & interests",           type: "text",     placeholder: "Gardening, OU football, puzzles" },
-    { id: "stores",  label: "Favorite stores or restaurants",type: "text",     placeholder: "Target, Chick-fil-A, Hobby Lobby" },
-    { id: "size",    label: "Shirt size",                    type: "select",   options: ["", "XS", "S", "M", "L", "XL", "2XL", "3XL"] },
-    { id: "avoid",   label: "Please no…",                    type: "textarea", placeholder: "Allergies, dislikes, things you have plenty of", hint: "Allergies, dislikes, or things you already have too many of." },
-    { id: "extra",   label: "Anything else my Santa should know", type: "textarea", placeholder: "" },
+    { section: "My favorite things", id: "salty",      label: "Salty treat",          type: "text", placeholder: "Kettle chips, pretzels, cashews…" },
+    { section: "My favorite things", id: "sweet",      label: "Sweet treat",          type: "text", placeholder: "Reese's, gummy bears…" },
+    { section: "My favorite things", id: "baked",      label: "Baked goods",          type: "text", placeholder: "Cinnamon rolls, cookies…" },
+    { section: "My favorite things", id: "drink",      label: "Drink (hot or cold)",  type: "text", placeholder: "Coffee order, Dr Pepper, chai…" },
+    { section: "My favorite things", id: "restaurant", label: "Restaurant",           type: "text", placeholder: "Chick-fil-A, Cheever's…" },
+    { section: "My favorite things", id: "sports",     label: "Sports team",          type: "text", placeholder: "Thunder, OU, OSU…" },
+    { section: "My favorite things", id: "colors",     label: "Color",                type: "text", placeholder: "Navy, sage green…" },
+    { section: "My favorite things", id: "scent",      label: "Scent",                type: "text", placeholder: "Vanilla, pine, citrus…" },
+    { section: "My favorite things", id: "bookstore",  label: "Bookstore",            type: "text", placeholder: "Barnes & Noble, Full Circle…" },
+    { section: "My favorite things", id: "hobbies",    label: "Hobbies",              type: "text", placeholder: "Gardening, puzzles, fishing…" },
+    { section: "My favorite things", id: "stores",     label: "Store",                type: "text", placeholder: "Target, Hobby Lobby…" },
+
+    { section: "Needs, wants & no-gos", id: "need",  label: "I need",                type: "text", placeholder: "A new phone charger" },
+    { section: "Needs, wants & no-gos", id: "want",  label: "I want",                type: "text", placeholder: "Fuzzy socks, a good book…" },
+    { section: "Needs, wants & no-gos", id: "avoid", label: "Please stay away from", type: "textarea", placeholder: "Allergies, dislikes, things you already have plenty of" },
+
+    { section: "Yes or no?", id: "lotions",   label: "Lotions",      type: "choice", options: ["Yes", "No"],                     detail: { id: "lotions_scent",  placeholder: "Favorite scent?" } },
+    { section: "Yes or no?", id: "candles",   label: "Candles",      type: "choice", options: ["Yes", "No"],                     detail: { id: "candles_scent",  placeholder: "Favorite scent?" } },
+    { section: "Yes or no?", id: "alcohol",   label: "Wine or beer", type: "choice", options: ["Yes", "No"],                     detail: { id: "alcohol_flavor", placeholder: "Favorite flavor or kind?" } },
+    { section: "Yes or no?", id: "chocolate", label: "Chocolate",    type: "choice", options: ["Yes", "Yes, but no nuts", "No"] },
+
+    { section: "Just for fun", id: "collection", label: "I can never resist adding another one of these to my collection", type: "textarea", placeholder: "Mugs, Funko Pops, ornaments…" },
+    { section: "Just for fun", id: "splurge",    label: "I love this but would never buy it for myself",                     type: "textarea", placeholder: "" },
   ],
+
+  // "How it works" on the home page. Dates and amounts come from the
+  // organizer Settings; these are the extra details.
+  SANTA_PERIOD: "Dec 4–15",
 };
 </script>
 <style>
@@ -174,6 +191,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pine-3);
 .err{background:#fdecef;color:var(--berry-2);border:1px solid #f4c9d1;border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px}
 .note{background:#f3efe2;border-radius:10px;padding:12px 14px;font-size:14px;color:#4d4a3e}
 .check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pills label{position:relative;cursor:pointer}
+.pills input{position:absolute;opacity:0;pointer-events:none}
+.pills span{display:inline-block;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-weight:600;font-size:14px;transition:.15s}
+.pills label:hover span{border-color:var(--pine-3)}
+.pills input:checked + span{background:var(--pine);border-color:var(--pine);color:var(--cream)}
+.pills input:focus-visible + span{box-shadow:0 0 0 4px rgba(31,106,85,.2)}
+.choice-detail{margin-top:8px}
+.steps.four{grid-template-columns:repeat(4,1fr)}
+@media (max-width:980px){.steps.four{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.steps.four{grid-template-columns:1fr}}
 .check input{margin-top:4px;width:18px;height:18px;accent-color:var(--pine)}
 
 .linkbox{display:flex;gap:8px;margin:14px 0}
@@ -233,11 +261,11 @@ input.pin{letter-spacing:.5em;font-size:20px;font-weight:700;text-align:center;m
 .askrow input{flex:1}
 
 /* Admin */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .stat .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
 .stat .v{font-family:var(--display);font-size:26px;font-weight:700;color:var(--pine)}
-@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.stats{grid-template-columns:1fr}}
 .phase-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .phase-open{background:#e3f2ea;color:var(--pine)}
 .phase-closed{background:#fbf0d9;color:#7a5a12}
@@ -395,7 +423,7 @@ async function rpc(fn, args = {}) {
    Demo backend — mirrors supabase/schema.sql, stored in localStorage
    ===================================================================== */
 const Mock = {
-  key: "gx_demo_state_v2", mem: null,
+  key: "gx_demo_state_v3", mem: null,
   load() {
     if (this.mem) return this.mem;
     this.mem = safe(() => JSON.parse(localStorage.getItem(this.key))) || this.seed();
@@ -407,12 +435,12 @@ const Mock = {
   seed() {
     const now = Date.now(), day = 864e5;
     const people = [
-      ["Avery Collins", { sweet: "Peanut butter cups", drink: "Iced vanilla latte", need: "A good desk lamp", want: "Cozy throw blanket", scent: "Vanilla & sandalwood", colors: "Sage green, cream", hobbies: "Pickleball, true crime podcasts", stores: "Target, Barnes & Noble", size: "M", avoid: "Tree nuts, please!" }],
-      ["Jordan Reyes", { sweet: "Sour gummy worms", salty: "Takis", drink: "Dr Pepper", need: "Phone car mount", want: "Thunder hoodie", scent: "Citrus", colors: "Blue, orange", hobbies: "Thunder basketball, grilling", stores: "Academy, Whataburger", size: "L" }],
-      ["Taylor Nguyen", { sweet: "Dark chocolate", drink: "Green tea", need: "Reusable water bottle", want: "Houseplant!", scent: "Eucalyptus", colors: "Emerald", hobbies: "Plants, yoga, baking", stores: "Trader Joe's, TJ Maxx", size: "S", avoid: "No more mugs, I have 40" }],
-      ["Morgan Blake", { sweet: "Cinnamon rolls", salty: "Pretzels", drink: "Black coffee", need: "Ice scraper", want: "Puzzle (1000 pc)", scent: "Pine", colors: "Navy and gold", hobbies: "Puzzles, OU football", stores: "Hobby Lobby", size: "XL" }],
-      ["Casey Patel", { sweet: "Macarons", drink: "Chai", need: "Notebook", want: "Nice pens", scent: "Lavender", colors: "Purple", hobbies: "Journaling, hiking", stores: "Anthropologie, Panera", size: "M" }],
-      ["Riley Brooks", { sweet: "Anything caramel", salty: "Popcorn", drink: "Coke Zero", need: "Lunch bag", want: "Movie theater gift card", scent: "Cotton / clean laundry", colors: "Red", hobbies: "Movies, fishing", stores: "Bass Pro, Chili's", size: "2XL" }],
+      ["Avery Collins", { salty: "Kettle chips", sweet: "Peanut butter cups", baked: "Banana bread", drink: "Iced vanilla latte", restaurant: "Chuy's", sports: "OU", colors: "Sage green", scent: "Vanilla", bookstore: "Barnes & Noble", hobbies: "Pickleball, podcasts", stores: "Target", need: "A good desk lamp", want: "Cozy throw blanket", avoid: "Tree nuts, please!", lotions: "Yes", lotions_scent: "Vanilla", candles: "Yes", candles_scent: "Sandalwood", alcohol: "No", chocolate: "Yes, but no nuts", collection: "Coffee mugs from road trips", splurge: "Fancy hand cream" }],
+      ["Jordan Reyes", { salty: "Takis", sweet: "Sour gummy worms", drink: "Dr Pepper", restaurant: "Whataburger", sports: "Thunder", colors: "Blue", hobbies: "Grilling", stores: "Academy", need: "Phone car mount", want: "Thunder hoodie", lotions: "No", candles: "No", alcohol: "Yes", alcohol_flavor: "IPAs", chocolate: "Yes", splurge: "Nice BBQ rub" }],
+      ["Taylor Nguyen", { sweet: "Dark chocolate", baked: "Macarons", drink: "Green tea", colors: "Emerald", scent: "Eucalyptus", hobbies: "Plants, yoga", stores: "Trader Joe's", need: "Water bottle", want: "A new houseplant", avoid: "No more mugs, I have 40", lotions: "Yes", lotions_scent: "Unscented", candles: "Yes", candles_scent: "Eucalyptus", alcohol: "Yes", alcohol_flavor: "Rosé", chocolate: "Yes", collection: "Succulents" }],
+      ["Morgan Blake", { salty: "Pretzels", sweet: "Cinnamon bears", baked: "Cinnamon rolls", drink: "Black coffee", sports: "OSU", colors: "Orange", hobbies: "Puzzles", stores: "Hobby Lobby", want: "1000-piece puzzle", candles: "No", chocolate: "No", splurge: "Good socks" }],
+      ["Casey Patel", { sweet: "Macarons", drink: "Chai", restaurant: "Panera", colors: "Purple", scent: "Lavender", bookstore: "Full Circle Books", hobbies: "Journaling, hiking", need: "Notebook", want: "Nice pens", lotions: "Yes", lotions_scent: "Lavender", candles: "Yes", candles_scent: "Lavender", alcohol: "No", chocolate: "Yes", collection: "Washi tape" }],
+      ["Riley Brooks", { salty: "Popcorn", sweet: "Anything caramel", drink: "Coke Zero", restaurant: "Chili's", sports: "Chiefs", colors: "Red", hobbies: "Movies, fishing", stores: "Bass Pro", need: "Lunch bag", want: "Movie gift card", lotions: "No", candles: "No", alcohol: "Yes", alcohol_flavor: "Light beer", chocolate: "Yes" }],
     ].map(([name, answers], i) => ({
       id: this.uid(), name, email: name.toLowerCase().replace(/\s+/g, ".") + "@example.org", answers,
       token: "seed-" + i, pin: "1234", pinFails: 0, lockedUntil: 0, assignedTo: null, joinedAt: new Date(now - (8 - i) * day * 0.6).toISOString(), updatedAt: null,
@@ -420,10 +448,10 @@ const Mock = {
     const y = new Date().getFullYear();
     return {
       config: {
-        eventName: "OMAG Holiday Gift Exchange", budget: "$25", exchangeDate: "Wed, Dec 16 · Staff holiday lunch",
-        location: "OMAG Training Room", notes: "", allowedDomain: "", showMatchesToAdmin: false, siteUrl: "",
-        emailEnabled: false, signupDeadline: new Date(y, 11, 4, 17, 0).toISOString(),
-        revealAt: new Date(y, 11, 8, 9, 0).toISOString(), drawnAt: null, emailsSentAt: null,
+        eventName: "OMAG Secret Santa", budget: "up to $30", exchangeDate: "Tue, Dec 16 at 11:00 AM",
+        location: "Training Room", notes: "", allowedDomain: "", showMatchesToAdmin: false, siteUrl: "",
+        emailEnabled: false, signupDeadline: new Date(y, 11, 2, 23, 59).toISOString(),
+        revealAt: new Date(y, 11, 3, 8, 0).toISOString(), drawnAt: null, emailsSentAt: null,
       },
       people, messages: [], adminKey: "demo",
     };
@@ -650,8 +678,8 @@ async function viewHome(app) {
   const c = d.config, tok = getToken();
   let cd = "";
   if (d.phase === "open" && c.signupDeadline) cd = countdownHTML(c.signupDeadline, "Sign-ups close in");
-  else if (d.phase === "open" && c.revealAt) cd = countdownHTML(c.revealAt, "Names revealed in");
-  else if (d.phase === "closed" && c.revealAt) cd = countdownHTML(c.revealAt, "Names revealed in");
+  else if (d.phase === "open" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in");
+  else if (d.phase === "closed" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in");
 
   let headline, lead, actions;
   if (d.phase === "revealed") {
@@ -661,11 +689,11 @@ async function viewHome(app) {
   } else if (d.phase === "closed") {
     headline = `The list is <em>sealed.</em>`;
     lead = "Sign-ups are closed. Names will be drawn and revealed soon. Check back here at reveal time!";
-    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>` : `<a class="btn btn-gold" href="#lost">Sign in</a>`;
+    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my list</a>` : `<a class="btn btn-gold" href="#lost">Sign in</a>`;
   } else {
     headline = `Let's spread some <em>cheer.</em>`;
     lead = "Fill out your wish list, we'll draw names, and on reveal day you'll find out who you're shopping for, with their list ready to go.";
-    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>`
+    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my list</a>`
                   : `<a class="btn btn-primary" href="#join">Join the exchange</a><a class="btn btn-ghost" href="#lost" style="color:var(--cream)">Already joined? Sign in</a>`;
   }
 
@@ -684,10 +712,10 @@ async function viewHome(app) {
   </section>
   <div class="wrap">
     <div class="facts">
-      <div class="fact"><div class="k">Spending limit</div><div class="v">${esc(c.budget || "Up to you")}</div></div>
-      <div class="fact"><div class="k">Exchange day</div><div class="v">${esc(c.exchangeDate || "TBA")}</div></div>
+      <div class="fact"><div class="k">Spend</div><div class="v">${esc(c.budget || "Up to you")}</div></div>
+      <div class="fact"><div class="k">Santas revealed</div><div class="v">${esc(c.exchangeDate || "TBA")}</div></div>
       <div class="fact"><div class="k">Sign-ups close</div><div class="v">${esc(fmtDate(c.signupDeadline) || "TBA")}</div></div>
-      <div class="fact"><div class="k">Names revealed</div><div class="v">${esc(fmtDate(c.revealAt) || "TBA")}</div></div>
+      <div class="fact"><div class="k">Names drawn</div><div class="v">${esc(fmtDate(c.revealAt) || "TBA")}</div></div>
     </div>
     ${c.location || c.notes ? `<p class="note" style="margin-top:16px">${c.location ? `📍 <b>${esc(c.location)}</b>` : ""}${c.location && c.notes ? " · " : ""}${esc(c.notes)}</p>` : ""}
 
@@ -705,11 +733,12 @@ async function viewHome(app) {
     </section>
 
     <section class="block">
-      <div class="sec-head"><h2>How it works</h2></div>
-      <div class="steps">
-        <div class="step"><div class="n">1</div><h3>Make your list</h3><p>Tell your Secret Santa what you love: sweets, scents, sizes, wants and needs.</p></div>
-        <div class="step"><div class="n">2</div><h3>We draw names</h3><p>At reveal time, everyone gets someone. Nobody draws themselves, and nobody can peek.</p></div>
-        <div class="step"><div class="n">3</div><h3>Shop &amp; surprise</h3><p>See your person's list, ask them questions anonymously, and bring your gift on exchange day.</p></div>
+      <div class="sec-head"><div><h2>How it works</h2><p>OMAG Secret Santa is voluntary. Join in if you'd like to play!</p></div></div>
+      <div class="steps four">
+        <div class="step"><div class="n">1</div><h3>Share your favorite things</h3><p>Fill out your list${c.signupDeadline ? ` by <b>${esc(fmtDate(c.signupDeadline, { weekday: "long", month: "short", day: "numeric" }))}</b>` : ""}. Your Santa will use it as a guide.</p></div>
+        <div class="step"><div class="n">2</div><h3>Find out who you have</h3><p>${c.revealAt ? `On <b>${esc(fmtDate(c.revealAt, { weekday: "long", month: "short", day: "numeric" }))}</b>, n` : "N"}ames are drawn and you'll see your person and their list here. No envelopes, no peeking, and nobody draws themselves.</p></div>
+        <div class="step"><div class="n">3</div><h3>Treat them secretly</h3><p>${CONFIG.SANTA_PERIOD ? `From <b>${esc(CONFIG.SANTA_PERIOD)}</b>, a` : "A"}nonymously leave gifts, cards and notes. Spend ${esc(c.budget || "what you like")} total; you don't have to spend it all.</p></div>
+        <div class="step"><div class="n">4</div><h3>The big reveal</h3><p>${c.exchangeDate ? `<b>${esc(c.exchangeDate)}</b>${c.location ? " in the " + esc(c.location) : ""}: ` : ""}Santas are revealed! Bring a pair of cheap, garish socks stuffed with small treats, tied with a bow. 🧦🎀</p></div>
       </div>
     </section>
   </div>`;
@@ -723,18 +752,44 @@ function ornament(len, color) {
     <ellipse cx="15" cy="${len + 14}" rx="5" ry="7" fill="rgba(255,255,255,.35)" transform="rotate(30 15 ${len + 14})"/></svg>`;
 }
 
-function fieldHTML(q, val) {
-  const v = esc(val || "");
+function fieldHTML(q, answers) {
+  answers = answers || {};
+  const val = answers[q.id] || "";
+  const v = esc(val);
   let input;
+  if (q.type === "choice") {
+    const opts = (q.options || []).map(o => `<label><input type="radio" name="${esc(q.id)}" value="${esc(o)}" ${o === val ? "checked" : ""}><span>${esc(o)}</span></label>`).join("");
+    const det = q.detail ? `<input class="choice-detail" type="text" name="${esc(q.detail.id)}" value="${esc(answers[q.detail.id] || "")}" placeholder="${esc(q.detail.placeholder || "")}" maxlength="300" aria-label="${esc(q.label)}: ${esc(q.detail.placeholder || "details")}">` : "";
+    return `<div class="f" role="group" aria-label="${esc(q.label)}"><span style="display:block;font-weight:700;font-size:14px;margin-bottom:8px">${esc(q.label)}</span><div class="pills">${opts}</div>${det}</div>`;
+  }
   if (q.type === "textarea") input = `<textarea name="${esc(q.id)}" placeholder="${esc(q.placeholder || "")}" maxlength="1000">${v}</textarea>`;
   else if (q.type === "select") input = `<select name="${esc(q.id)}">${(q.options || []).map(o => `<option value="${esc(o)}" ${o === val ? "selected" : ""}>${esc(o || "Choose…")}</option>`).join("")}</select>`;
   else input = `<input type="text" name="${esc(q.id)}" value="${v}" placeholder="${esc(q.placeholder || "")}" maxlength="1000">`;
   return `<label class="f ${q.type === "textarea" ? "full" : ""}"><span>${esc(q.label)}</span>${q.hint ? `<small>${esc(q.hint)}</small>` : ""}${input}</label>`;
 }
+function fieldsHTML(answers) {
+  const groups = [];
+  CONFIG.QUESTIONS.forEach(q => {
+    const sec = q.section || "";
+    if (!groups.length || groups[groups.length - 1].sec !== sec) groups.push({ sec, qs: [] });
+    groups[groups.length - 1].qs.push(q);
+  });
+  return groups.map(g => `${g.sec ? `<div class="divider">${esc(g.sec)}</div>` : ""}<div class="grid2">${g.qs.map(q => fieldHTML(q, answers)).join("")}</div>`).join("");
+}
 function collectAnswers(form) {
   const a = {};
-  CONFIG.QUESTIONS.forEach(q => { const el = form.elements[q.id]; if (el && el.value.trim()) a[q.id] = el.value.trim(); });
+  const take = id => { const el = form.elements[id]; const v = el && typeof el.value === "string" ? el.value.trim() : ""; if (v) a[id] = v; };
+  CONFIG.QUESTIONS.forEach(q => { take(q.id); if (q.detail) take(q.detail.id); });
   return a;
+}
+// One display row per question: [label, value, wide]
+function answerRows(answers) {
+  answers = answers || {};
+  return CONFIG.QUESTIONS.map(q => {
+    let v = answers[q.id] || "";
+    if (q.detail && answers[q.detail.id]) v = v ? `${v} · ${answers[q.detail.id]}` : answers[q.detail.id];
+    return [q.label, v, q.type === "textarea"];
+  });
 }
 
 async function viewJoin(app) {
@@ -747,8 +802,8 @@ async function viewJoin(app) {
   const dom = d.config.allowedDomain;
   app.innerHTML = `
   <div class="wrap page">
-    <h1 class="page-title">Make your wish list</h1>
-    <p class="page-sub">Your Secret Santa will see this list on reveal day. Fill in as much or as little as you like. You can come back and edit it any time.</p>
+    <h1 class="page-title">My favorite things</h1>
+    <p class="page-sub">Your Secret Santa sees this list once names are drawn. Fill in as much or as little as you like. It's just a guide.</p>
     <form class="card" id="join-form" novalidate>
       <div class="grid2">
         <label class="f"><span>Your name</span><input type="text" name="name" required maxlength="80" autocomplete="name" placeholder="First and last name"></label>
@@ -756,10 +811,9 @@ async function viewJoin(app) {
         <label class="f full"><span>Pick a 4-digit PIN</span><small>You'll use your email and this PIN to sign in from another computer or your phone. Don't use your bank PIN!</small>
           <input class="pin" type="text" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="••••" required></label>
       </div>
-      <div class="divider">your wish list</div>
-      <div class="grid2">${CONFIG.QUESTIONS.map(q => fieldHTML(q, "")).join("")}</div>
+      ${fieldsHTML({})}
       <div id="join-err"></div>
-      <div class="form-actions"><button class="btn btn-primary" type="submit">🎁 Add me to the exchange</button><span style="color:var(--muted);font-size:13px">You can edit your list any time.</span></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">🎁 Add me to the exchange</button><span style="color:var(--muted);font-size:13px">List as many as you want. You can edit it any time.</span></div>
     </form>
   </div>`;
   $("#join-form").addEventListener("submit", async e => {
@@ -862,9 +916,9 @@ async function viewMe(app) {
   const c = ME.config, me = ME.me, rev = ME.phase === "revealed" && ME.recipient;
 
   let status;
-  if (rev) status = `<div class="status"><div class="ic">🎁</div><div><b>Names are drawn!</b><span>Shopping budget: ${esc(c.budget || "up to you")}${c.exchangeDate ? " · Exchange: " + esc(c.exchangeDate) : ""}</span></div></div>`;
-  else if (ME.phase === "closed") status = `<div class="status"><div class="ic">🔒</div><div><b>You're in, ${esc(firstName(me.name))}. Sign-ups are closed.</b><span>${c.revealAt ? "Names revealed " + esc(fmtDate(c.revealAt)) + "." : "Names will be revealed soon."} You can still update your list.</span></div></div>`;
-  else status = `<div class="status"><div class="ic">✅</div><div><b>You're in, ${esc(firstName(me.name))}!</b><span>${c.revealAt ? "Names revealed " + esc(fmtDate(c.revealAt)) + ". " : ""}Edit your list any time before then.</span></div></div>`;
+  if (rev) status = `<div class="status"><div class="ic">🎁</div><div><b>Names are drawn!</b><span>Spend ${esc(c.budget || "what you like")}${c.exchangeDate ? " · Santas revealed " + esc(c.exchangeDate) : ""}</span></div></div>`;
+  else if (ME.phase === "closed") status = `<div class="status"><div class="ic">🔒</div><div><b>You're in, ${esc(firstName(me.name))}. Sign-ups are closed.</b><span>${c.revealAt ? "Names drawn " + esc(fmtDate(c.revealAt)) + "." : "Names will be drawn soon."} You can still update your list.</span></div></div>`;
+  else status = `<div class="status"><div class="ic">✅</div><div><b>You're in, ${esc(firstName(me.name))}!</b><span>${c.revealAt ? "Names drawn " + esc(fmtDate(c.revealAt)) + ". " : ""}Edit your list any time.</span></div></div>`;
 
   const seenKey = "gx_seen_" + me.id;
   const seen = !!local.get(seenKey);
@@ -910,11 +964,7 @@ function markAnswersSeen() {
 }
 
 function wishHTML(answers) {
-  const keys = CONFIG.QUESTIONS.map(q => q.id);
-  const extra = Object.keys(answers || {}).filter(k => !keys.includes(k));
-  const rows = [...CONFIG.QUESTIONS.map(q => [q.id, q.label, q.type === "textarea"]), ...extra.map(k => [k, k, false])];
-  return `<div class="wish">${rows.map(([id, label, wide]) => {
-    const v = (answers || {})[id];
+  return `<div class="wish">${answerRows(answers).map(([label, v, wide]) => {
     return `<div class="item ${wide ? "wide" : ""}"><div class="q">${esc(label)}</div><div class="a ${v ? "" : "none"}">${v ? esc(v) : "—"}</div></div>`;
   }).join("")}</div>`;
 }
@@ -923,12 +973,12 @@ function recipientHTML() {
   return `<div class="rcard">
     <div class="r-eyebrow">You're shopping for</div>
     <div class="r-name">${esc(r.name)}</div>
-    <div class="r-meta">Budget ${esc(ME.config.budget || "up to you")}${ME.config.exchangeDate ? " · Bring it " + esc(ME.config.exchangeDate) : ""}. Keep it a secret! 🤫</div>
+    <div class="r-meta">Treat them anonymously${CONFIG.SANTA_PERIOD ? " " + esc(CONFIG.SANTA_PERIOD) : ""} · Spend ${esc(ME.config.budget || "what you like")} total${ME.config.exchangeDate ? " · Santas revealed " + esc(ME.config.exchangeDate) : ""}. Their list is just a guide. Keep it secret! 🤫</div>
     ${wishHTML(r.answers)}
     <div class="form-actions"><button class="btn btn-pine btn-sm" id="print-r" type="button">🖨️ Print their list</button></div>
   </div>`;
 }
-function bindRecipient() { const b = $("#print-r"); if (b) b.onclick = () => printList(`${ME.recipient.name}'s wish list`, ME.recipient.answers); }
+function bindRecipient() { const b = $("#print-r"); if (b) b.onclick = () => printList(`${ME.recipient.name}'s favorite things`, ME.recipient.answers); }
 
 function askHTML() {
   const r = ME.recipient, list = ME.sentQuestions || [];
@@ -979,11 +1029,11 @@ function bindReceived() {
 
 function myListHTML(editing = false) {
   const me = ME.me;
-  if (editing) return `<h2>Edit my wish list</h2><p class="sub">Changes show up for your Secret Santa right away.</p>
+  if (editing) return `<h2>Edit my favorite things</h2><p class="sub">Changes show up for your Secret Santa right away.</p>
     <form id="edit-form"><label class="f" style="margin-bottom:14px"><span>Your name</span><input type="text" name="name" value="${esc(me.name)}" maxlength="80"></label>
-    <div class="grid2">${CONFIG.QUESTIONS.map(q => fieldHTML(q, me.answers[q.id])).join("")}</div>
+    ${fieldsHTML(me.answers)}
     <div class="form-actions"><button class="btn btn-primary" type="submit">Save my list</button><button class="btn btn-ghost" type="button" id="cancel-edit">Cancel</button></div></form>`;
-  return `<h2>My wish list</h2><p class="sub">This is what your Secret Santa sees.</p>
+  return `<h2>My favorite things</h2><p class="sub">This is what your Secret Santa sees.</p>
     ${wishHTML(me.answers)}
     <div class="form-actions">
       <button class="btn btn-pine btn-sm" id="edit-list" type="button">✏️ Edit my list</button>
@@ -998,7 +1048,7 @@ function bindMyList() {
   const box = $("#mylist");
   const e = $("#edit-list"); if (e) e.onclick = () => { box.innerHTML = myListHTML(true); bindMyList(); };
   const c = $("#cancel-edit"); if (c) c.onclick = () => { box.innerHTML = myListHTML(); bindMyList(); };
-  const p = $("#print-mine"); if (p) p.onclick = () => printList(`${ME.me.name}'s wish list`, ME.me.answers);
+  const p = $("#print-mine"); if (p) p.onclick = () => printList(`${ME.me.name}'s favorite things`, ME.me.answers);
   const so = $("#signout"); if (so) so.onclick = ev => { ev.preventDefault(); setToken(null); location.hash = "#home"; };
   const pf = $("#pin-form"); if (pf) pf.onsubmit = async ev => {
     ev.preventDefault();
@@ -1023,9 +1073,8 @@ function bindMyList() {
 
 function printList(title, answers) {
   const ev = (ME && ME.config) || (PUB && PUB.config) || {};
-  const keys = CONFIG.QUESTIONS.map(q => q.id);
-  const rows = [...CONFIG.QUESTIONS.map(q => [q.label, answers[q.id]]), ...Object.keys(answers).filter(k => !keys.includes(k)).map(k => [k, answers[k]])];
-  $("#print-area").innerHTML = `<h1>${esc(title)}</h1><div class="pmeta">${esc(ev.eventName || "")}${ev.budget ? " · Budget " + esc(ev.budget) : ""}${ev.exchangeDate ? " · " + esc(ev.exchangeDate) : ""}</div>
+  const rows = answerRows(answers);
+  $("#print-area").innerHTML = `<h1>${esc(title)}</h1><div class="pmeta">${esc(ev.eventName || "")}${ev.budget ? " · Spend " + esc(ev.budget) : ""}${ev.exchangeDate ? " · " + esc(ev.exchangeDate) : ""}</div>
     ${rows.map(([q, a]) => `<div class="prow"><div class="pq">${esc(q)}</div><div class="pa">${a ? esc(a) : "—"}</div></div>`).join("")}`;
   try { window.print(); } catch { toast("Printing isn't available here. Try from your browser's menu."); }
 }
@@ -1050,34 +1099,30 @@ async function viewAdmin(app) {
       <div class="stat"><div class="k">Participants</div><div class="v">${people.length}</div></div>
       <div class="stat"><div class="k">Status</div><div class="v"><span class="phase-pill phase-${ph}">${ph === "open" ? "Sign-ups open" : ph === "closed" ? (c.drawnAt ? "Drawn · sealed" : "Sign-ups closed") : "Revealed"}</span></div></div>
       <div class="stat"><div class="k">Names drawn</div><div class="v" style="font-size:18px;margin-top:6px">${c.drawnAt ? esc(fmtDate(c.drawnAt)) : "Not yet"}</div></div>
-      <div class="stat"><div class="k">Email</div><div class="v" style="font-size:18px;margin-top:6px">${c.emailEnabled ? `On${d.pendingEmails ? ` · ${d.pendingEmails} queued` : ""}${d.failedEmails ? ` · <span style="color:var(--berry)">${d.failedEmails} failed</span>` : ""}` : "Off"}</div></div>
     </div>
 
     <div class="card">
       <h2>The draw</h2>
       <p class="sub">${c.drawnAt ? (ph === "revealed" ? "Names are drawn and revealed. Everyone can see who they have." : "Names are drawn and sealed until the reveal time.")
-        : `Names draw automatically at the reveal time (${esc(fmtDate(c.revealAt) || "not set")}), or you can draw them now. It's one big loop, so nobody gets themselves and there are no two-person swaps.`}</p>
+        : `Names draw automatically at the "Names drawn" time (${esc(fmtDate(c.revealAt) || "not set")}), when everyone can see who they have. You can also draw now and keep them sealed until then. It's one big loop, so nobody gets themselves and there are no two-person swaps.`}</p>
       <div class="actions">
         ${!c.drawnAt ? `<button class="btn btn-pine" data-act="draw">Draw names now (keep sealed)</button>` : ""}
-        ${ph !== "revealed" ? `<button class="btn btn-primary" data-act="reveal">🎁 Reveal now</button>` : ""}
-        ${ph === "revealed" && c.emailEnabled ? `<button class="btn btn-ghost" data-act="resend">Resend reveal emails</button>` : ""}
+        ${ph !== "revealed" ? `<button class="btn btn-primary" data-act="reveal">🎁 Draw &amp; show everyone now</button>` : ""}
         ${c.drawnAt ? `<button class="btn btn-danger" data-act="reset">Reset the draw</button>` : ""}
       </div>
     </div>
 
     <form class="card" id="cfg-form">
-      <h2>Settings</h2><p class="sub">Shown on the home page and in emails.</p>
+      <h2>Settings</h2><p class="sub">Shown on the home page.</p>
       <div class="grid2">
         <label class="f"><span>Event name</span><input type="text" name="eventName" value="${esc(c.eventName)}"></label>
-        <label class="f"><span>Spending limit</span><input type="text" name="budget" value="${esc(c.budget)}" placeholder="$25"></label>
-        <label class="f"><span>Exchange day</span><small>Free text, e.g. "Wed, Dec 16 · Staff lunch"</small><input type="text" name="exchangeDate" value="${esc(c.exchangeDate)}"></label>
+        <label class="f"><span>Spending limit</span><small>Shown as "Spend ___ total", e.g. "up to $30"</small><input type="text" name="budget" value="${esc(c.budget)}" placeholder="up to $30"></label>
+        <label class="f"><span>Santas revealed (exchange day)</span><small>Free text, e.g. "Tue, Dec 16 at 11:00 AM"</small><input type="text" name="exchangeDate" value="${esc(c.exchangeDate)}"></label>
         <label class="f"><span>Location</span><small>Optional</small><input type="text" name="location" value="${esc(c.location)}"></label>
         <label class="f"><span>Sign-ups close</span><input type="datetime-local" name="signupDeadline" value="${toLocalInput(c.signupDeadline)}"></label>
-        <label class="f"><span>Names revealed</span><small>Names draw automatically at this time</small><input type="datetime-local" name="revealAt" value="${toLocalInput(c.revealAt)}"></label>
-        <label class="f full"><span>Note on the home page</span><small>Optional, e.g. "Wrap your gift and add a name tag!"</small><input type="text" name="notes" value="${esc(c.notes)}"></label>
-        <label class="f"><span>Only allow emails ending in</span><small>e.g. omag.org (leave blank to allow any)</small><input type="text" name="allowedDomain" value="${esc(c.allowedDomain)}"></label>
-        <label class="f"><span>Site address</span><small>Used for links in emails</small><input type="text" name="siteUrl" value="${esc(c.siteUrl || "")}" placeholder="https://…"></label>
-        <label class="check full"><input type="checkbox" name="emailEnabled" ${c.emailEnabled ? "checked" : ""}><span><b>Send emails</b> (optional; only if the email sender is set up; see README). People can always sign in with email + PIN.</span></label>
+        <label class="f"><span>Names drawn</span><small>Everyone sees who they have at this time</small><input type="datetime-local" name="revealAt" value="${toLocalInput(c.revealAt)}"></label>
+        <label class="f full"><span>Note on the home page</span><small>Optional, e.g. "Sock exchange: bring cheap, garish socks stuffed with treats, tied with a bow!"</small><input type="text" name="notes" value="${esc(c.notes)}"></label>
+        <label class="f full"><span>Only allow sign-ups from</span><small>e.g. omag.org, so only @omag.org addresses can join (leave blank to allow any)</small><input type="text" name="allowedDomain" value="${esc(c.allowedDomain)}"></label>
         <label class="check full"><input type="checkbox" name="showMatchesToAdmin" ${c.showMatchesToAdmin ? "checked" : ""}><span><b>Show me who drew whom</b>. Leave off if you're participating too and want to be surprised.</span></label>
       </div>
       <div class="form-actions"><button class="btn btn-primary" type="submit">Save settings</button></div>
@@ -1089,7 +1134,7 @@ async function viewAdmin(app) {
       ${people.length ? `<div class="tablewrap"><table class="people"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>List</th>${c.showMatchesToAdmin && c.drawnAt ? "<th>Is giving to</th>" : ""}<th></th></tr></thead><tbody>
       ${people.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.email)}</td><td>${esc(fmtDay(p.joinedAt))}</td><td>${p.answerCount} answers</td>
         ${c.showMatchesToAdmin && c.drawnAt ? `<td>${esc(p.assignedToName || "—")}</td>` : ""}
-        <td class="r"><button class="btn btn-ghost btn-sm" data-pin="${esc(p.id)}" data-name="${esc(p.name)}">Reset PIN</button> ${c.emailEnabled ? `<button class="btn btn-ghost btn-sm" data-link="${esc(p.id)}">Email link</button> ` : ""}${!c.drawnAt ? `<button class="btn btn-danger btn-sm" data-remove="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>` : ""}</td></tr>`).join("")}
+        <td class="r"><button class="btn btn-ghost btn-sm" data-pin="${esc(p.id)}" data-name="${esc(p.name)}">Reset PIN</button> ${!c.drawnAt ? `<button class="btn btn-danger btn-sm" data-remove="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>` : ""}</td></tr>`).join("")}
       </tbody></table></div>` : `<div class="empty">No one yet.</div>`}
     </div>
 
@@ -1108,14 +1153,11 @@ async function viewAdmin(app) {
     const a = b.dataset.act;
     if (a === "draw" && await confirmBox("Draw names now?", `Everyone currently signed up (${people.length}) will be matched. Sign-ups close, and matches stay hidden until the reveal time.`, "Draw names"))
       act("gx_admin_draw", "Names drawn and sealed. 🎄");
-    if (a === "reveal" && await confirmBox("Reveal now?", `${c.drawnAt ? "" : "This draws names right now and "}Everyone will be able to see who they drew${c.emailEnabled ? ", and reveal emails go out" : ""}.`, "Reveal now", true))
-      act("gx_admin_reveal_now", "Revealed! 🎁");
-    if (a === "resend" && await confirmBox("Resend reveal emails?", "Everyone gets the reveal email again.", "Resend"))
-      act("gx_admin_resend_reveal", "Reveal emails queued.");
+    if (a === "reveal" && await confirmBox("Show everyone who they have?", `${c.drawnAt ? "" : "This draws names right now, and "}everyone will be able to see who they drew.`, "Show everyone", true))
+      act("gx_admin_reveal_now", "Names are out! 🎁");
     if (a === "reset" && await confirmBox("Reset the draw?", "All matches and anonymous questions are deleted and sign-ups reopen (if the deadline hasn't passed). People who already saw their match will get a new one when you draw again.", "Reset", true))
       act("gx_admin_reset", "Draw reset.");
   });
-  $$("[data-link]").forEach(b => b.onclick = () => act("gx_admin_send_link", "Link email queued.", { p_id: b.dataset.link }));
   $$("[data-pin]").forEach(b => b.onclick = async () => {
     if (!await confirmBox(`Reset ${b.dataset.name}'s PIN?`, "They'll get a new random 4-digit PIN. You'll see it once, so give it to them in person or by Teams.", "Reset PIN")) return;
     try { const r = await rpc("gx_admin_reset_pin", { p_key: key, p_id: b.dataset.pin }); showPin(b.dataset.name, r.pin); }
@@ -1129,9 +1171,9 @@ async function viewAdmin(app) {
     const f = e.target, g = n => f.elements[n];
     const cfg = {
       eventName: g("eventName").value, budget: g("budget").value, exchangeDate: g("exchangeDate").value,
-      location: g("location").value, notes: g("notes").value, allowedDomain: g("allowedDomain").value, siteUrl: g("siteUrl").value,
+      location: g("location").value, notes: g("notes").value, allowedDomain: g("allowedDomain").value,
       signupDeadline: fromLocalInput(g("signupDeadline").value), revealAt: fromLocalInput(g("revealAt").value),
-      emailEnabled: g("emailEnabled").checked, showMatchesToAdmin: g("showMatchesToAdmin").checked,
+      showMatchesToAdmin: g("showMatchesToAdmin").checked,
     };
     act("gx_admin_save", "Settings saved.", { p_cfg: cfg });
   };
