@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMAG Holiday Gift Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,500;1,9..144,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   SETTINGS — the only part you need to edit
+   ===================================================================== */
+const CONFIG = {
+  // From Supabase → Project Settings → API. Leave both blank for DEMO MODE
+  // (everything is saved only in your own browser so you can try it out).
+  SUPABASE_URL: "https://jsfrumccogrzhfqyhsqg.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_I3PreoIqtPkmhMu5f7lFKw_cW44ynHX",
+
+  // The questions on the wish-list form. Change, add or remove freely.
+  //   id:   short unique key (letters, numbers, - or _). Don't change an id
+  //         once people have signed up, or their old answer won't show.
+  //   type: "text", "textarea" or "select" (select needs options: [...])
+  QUESTIONS: [
+    { id: "sweet",   label: "Something sweet I love",        type: "text",     placeholder: "Dark chocolate sea-salt caramels" },
+    { id: "salty",   label: "Favorite salty snack",          type: "text",     placeholder: "Kettle chips, cashews…" },
+    { id: "drink",   label: "Favorite drink",                type: "text",     placeholder: "Coffee order, soda, tea…" },
+    { id: "need",    label: "Something I need",              type: "text",     placeholder: "A new phone charger" },
+    { id: "want",    label: "Something I want",              type: "text",     placeholder: "Fuzzy socks, a good book…" },
+    { id: "scent",   label: "Scents I like",                 type: "text",     placeholder: "Vanilla, pine, citrus…" },
+    { id: "colors",  label: "Favorite colors",               type: "text",     placeholder: "Navy and gold" },
+    { id: "hobbies", label: "Hobbies & interests",           type: "text",     placeholder: "Gardening, OU football, puzzles" },
+    { id: "stores",  label: "Favorite stores or restaurants",type: "text",     placeholder: "Target, Chick-fil-A, Hobby Lobby" },
+    { id: "size",    label: "Shirt size",                    type: "select",   options: ["", "XS", "S", "M", "L", "XL", "2XL", "3XL"] },
+    { id: "avoid",   label: "Please no…",                    type: "textarea", placeholder: "Allergies, dislikes, things you have plenty of", hint: "Allergies, dislikes, or things you already have too many of." },
+    { id: "extra",   label: "Anything else my Santa should know", type: "textarea", placeholder: "" },
+  ],
+};
+</script>
+<style>
+:root{
+  --pine:#0e3b2e; --pine-2:#165141; --pine-3:#1f6a55;
+  --berry:#b0283f; --berry-2:#8c1c30;
+  --gold:#c8a24a; --gold-2:#a8852f;
+  --navy:#3a6a9a;
+  --cream:#fbf5e9; --paper:#fffdf8; --line:#e8dfcd;
+  --ink:#1c2420; --muted:#5d6964;
+  --radius:16px;
+  --shadow:0 1px 2px rgba(14,59,46,.06), 0 8px 28px rgba(14,59,46,.08);
+  --display:"Fraunces", Georgia, serif;
+  --body:"DM Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--body);color:var(--ink);background:var(--cream);line-height:1.55;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(rgba(200,162,74,.10) 1px, transparent 1.2px);background-size:22px 22px}
+a{color:var(--berry)}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;color:var(--pine);font-weight:600}
+button,input,select,textarea{font:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Top bar */
+.demo-bar{background:var(--gold);color:#2b2108;font-size:13px;text-align:center;padding:7px 12px}
+.demo-bar button{background:none;border:0;text-decoration:underline;cursor:pointer;color:inherit;font-weight:700;padding:0 4px}
+header.top{background:var(--pine);color:var(--cream);position:sticky;top:0;z-index:20;border-bottom:1px solid rgba(255,255,255,.08)}
+header.top .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--cream);font-family:var(--display);font-size:19px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .mark{width:30px;height:30px;flex:none}
+nav.links{margin-left:auto;display:flex;gap:4px}
+nav.links a{color:rgba(251,245,233,.85);text-decoration:none;font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
+nav.links a:hover{background:rgba(255,255,255,.08);color:#fff}
+nav.links a.on{background:rgba(255,255,255,.12);color:#fff}
+nav.links a.cta{background:var(--berry);color:#fff}
+nav.links a.cta:hover{background:var(--berry-2)}
+.brand{min-width:0} nav.links a{white-space:nowrap}
+@media (max-width:560px){.brand{font-size:16px}.brand .mark{width:24px;height:24px}nav.links a{padding:6px 10px;font-size:13px}header.top .wrap{gap:10px;padding:0 14px}}
+
+/* Hero */
+.hero{position:relative;background:radial-gradient(1200px 500px at 80% -10%, rgba(200,162,74,.25), transparent 60%),linear-gradient(180deg,var(--pine) 0%, #0b3226 100%);color:var(--cream);overflow:hidden;padding:64px 0 120px}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero .wrap{position:relative;z-index:1}
+.eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.hero h1{color:var(--cream);font-size:clamp(40px,7vw,78px);font-weight:800;letter-spacing:-.02em;margin:14px 0 16px;max-width:14ch}
+.hero h1 em{font-style:italic;font-weight:500;color:var(--gold)}
+.hero p.lead{font-size:18px;max-width:52ch;color:rgba(251,245,233,.85);margin:0 0 30px}
+.ornaments{position:absolute;right:4%;top:0;z-index:1;display:flex;gap:26px;pointer-events:none}
+.orn{transform-origin:top center;animation:sway 6s ease-in-out infinite}
+.orn:nth-child(2){animation-delay:-2s}.orn:nth-child(3){animation-delay:-4s}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (max-width:760px){.ornaments{display:none}}
+
+.countdown{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.cd-label{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:rgba(251,245,233,.7);margin-bottom:10px;font-weight:700}
+.cd-tile{background:var(--cream);color:var(--pine);border-radius:12px;min-width:84px;padding:12px 10px 8px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);position:relative}
+.cd-tile::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(14,59,46,.08)}
+.cd-num{font-family:var(--display);font-size:40px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.cd-unit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:13px 22px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;transition:transform .15s, background .15s, box-shadow .15s;line-height:1.1}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--berry);color:#fff;box-shadow:0 6px 18px rgba(176,40,63,.35)}
+.btn-primary:hover{background:var(--berry-2)}
+.btn-gold{background:var(--gold);color:#251c05}
+.btn-gold:hover{background:#d6b25c}
+.btn-ghost{background:transparent;color:inherit;box-shadow:inset 0 0 0 1.5px currentColor}
+.btn-ghost:hover{background:rgba(127,127,127,.08)}
+.btn-pine{background:var(--pine);color:var(--cream)}
+.btn-pine:hover{background:var(--pine-2)}
+.btn-sm{padding:8px 14px;font-size:13px}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn-danger{background:transparent;color:var(--berry);box-shadow:inset 0 0 0 1.5px var(--berry)}
+.btn-danger:hover{background:rgba(176,40,63,.06)}
+
+/* Facts */
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:-70px;position:relative;z-index:2}
+.fact{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow)}
+.fact .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.fact .v{font-family:var(--display);font-size:20px;font-weight:600;color:var(--pine);margin-top:4px;line-height:1.25}
+@media (max-width:820px){.facts{grid-template-columns:repeat(2,1fr)}}
+
+section.block{padding:56px 0 8px}
+.sec-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.sec-head h2{font-size:clamp(28px,4vw,38px)}
+.sec-head p{margin:6px 0 0;color:var(--muted)}
+.count-pill{background:var(--pine);color:var(--cream);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px}
+
+/* Gift tags board */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px 14px}
+.tag{position:relative;background:var(--paper);border:1px solid var(--line);padding:14px 14px 14px 34px;display:flex;align-items:center;gap:12px;
+  clip-path:polygon(18px 0,100% 0,100% 100%,18px 100%,0 50%);border-radius:0 12px 12px 0;box-shadow:var(--shadow);
+  transform:rotate(var(--r,0deg));transition:transform .25s;animation:pop .45s both}
+.tag:hover{transform:rotate(0) translateY(-2px)}
+.tag::before{content:"";position:absolute;left:14px;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--cream);box-shadow:inset 0 0 0 1.5px var(--gold-2)}
+.tag .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;flex:none}
+.tag .nm{font-weight:700;line-height:1.2}
+.tag .when{font-size:12px;color:var(--muted)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}}
+.empty{border:2px dashed var(--line);border-radius:var(--radius);padding:36px;text-align:center;color:var(--muted);background:rgba(255,253,248,.6)}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px;position:relative;overflow:hidden}
+.step .n{font-family:var(--display);font-style:italic;font-size:54px;color:var(--gold);line-height:.9;font-weight:700}
+.step h3{font-size:22px;margin:10px 0 6px}
+.step p{margin:0;color:var(--muted)}
+@media (max-width:760px){.steps{grid-template-columns:1fr}}
+
+footer{padding:56px 0 40px;color:var(--muted);font-size:13px;text-align:center}
+footer a{color:var(--muted)}
+
+/* Cards / forms */
+.page{padding:44px 0 20px}
+.page-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.01em}
+.page-sub{color:var(--muted);margin:8px 0 26px;max-width:62ch;font-size:17px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+.card + .card{margin-top:18px}
+.card h2{font-size:26px;margin-bottom:6px}
+.card .sub{color:var(--muted);margin:0 0 18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+.full{grid-column:1/-1}
+@media (max-width:700px){.grid2{grid-template-columns:1fr}.card{padding:22px}}
+label.f{display:block}
+label.f > span{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+label.f > small{display:block;color:var(--muted);font-size:12.5px;margin:-3px 0 6px}
+input[type=text],input[type=email],input[type=password],input[type=datetime-local],select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:11px 13px;color:var(--ink);transition:border-color .15s, box-shadow .15s}
+textarea{min-height:88px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pine-3);box-shadow:0 0 0 4px rgba(31,106,85,.14)}
+.divider{display:flex;align-items:center;gap:12px;color:var(--gold-2);font-family:var(--display);font-style:italic;font-size:18px;margin:26px 0 16px}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.form-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:24px}
+.err{background:#fdecef;color:var(--berry-2);border:1px solid #f4c9d1;border-radius:10px;padding:10px 14px;margin-top:16px;font-size:14px}
+.note{background:#f3efe2;border-radius:10px;padding:12px 14px;font-size:14px;color:#4d4a3e}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check input{margin-top:4px;width:18px;height:18px;accent-color:var(--pine)}
+
+.linkbox{display:flex;gap:8px;margin:14px 0}
+.linkbox input{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#faf7ef}
+
+/* Wish list display */
+.wish{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.wish .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.wish .item.wide{grid-column:1/-1}
+.wish .q{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.wish .a{margin-top:3px;font-size:15.5px;white-space:pre-wrap;word-wrap:break-word}
+.wish .a.none{color:#a7aea9;font-style:italic}
+@media (max-width:600px){.wish{grid-template-columns:1fr}}
+
+.me-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
+@media (max-width:900px){.me-grid{grid-template-columns:1fr}}
+.status{display:flex;gap:14px;align-items:center;background:var(--pine);color:var(--cream);border-radius:var(--radius);padding:18px 22px;margin-bottom:18px}
+.status .ic{font-size:28px}
+.status b{font-family:var(--display);font-size:20px;font-weight:600;display:block}
+.status span{opacity:.85;font-size:14px}
+
+/* Reveal */
+.reveal-stage{text-align:center;padding:30px 10px 10px}
+.giftbox{width:180px;height:180px;margin:10px auto 0;position:relative;cursor:pointer;border:0;background:none;padding:0;display:block}
+.giftbox .body{position:absolute;left:14px;right:14px;bottom:0;height:118px;background:var(--berry);border-radius:6px 6px 10px 10px;box-shadow:inset 0 -12px 0 rgba(0,0,0,.12)}
+.giftbox .lid{position:absolute;left:4px;right:4px;top:38px;height:36px;background:#c2304a;border-radius:6px;box-shadow:0 6px 0 rgba(0,0,0,.12);transition:transform .7s cubic-bezier(.3,1.6,.5,1), opacity .6s}
+.giftbox .rib-v{position:absolute;left:50%;width:26px;margin-left:-13px;background:var(--gold);top:38px;bottom:0;border-radius:2px}
+.giftbox .bow{position:absolute;left:50%;top:6px;width:90px;margin-left:-45px;height:40px;transition:transform .7s cubic-bezier(.3,1.6,.5,1), opacity .6s}
+.giftbox .bow::before,.giftbox .bow::after{content:"";position:absolute;top:4px;width:40px;height:30px;border:7px solid var(--gold);border-radius:50% 50% 50% 50%/60% 60% 40% 40%}
+.giftbox .bow::before{left:0;transform:rotate(-18deg)}
+.giftbox .bow::after{right:0;transform:rotate(18deg)}
+.giftbox:hover{animation:wiggle .6s ease-in-out}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.giftbox.open{animation:none;pointer-events:none}
+.giftbox.open .lid,.giftbox.open .bow{transform:translateY(-120px) rotate(-24deg);opacity:0}
+.giftbox.open .body,.giftbox.open .rib-v{transition:opacity .5s .35s;opacity:0}
+.tap-hint{margin-top:16px;color:var(--muted);font-family:var(--display);font-style:italic;font-size:19px}
+.rcard{animation:rise .7s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.96)}}
+.r-eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--berry);font-weight:700}
+.r-name{font-family:var(--display);font-size:clamp(38px,6vw,58px);font-weight:800;color:var(--pine);margin:6px 0 4px;letter-spacing:-.01em}
+.r-meta{color:var(--muted);margin-bottom:20px}
+
+/* Q&A */
+.thread{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.bubble{border-radius:14px;padding:11px 14px;max-width:92%;font-size:15px;white-space:pre-wrap;word-wrap:break-word}
+.bubble small{display:block;font-size:11px;opacity:.7;margin-bottom:2px;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.bubble.q{background:#f1ece0;align-self:flex-start}
+.bubble.a{background:var(--pine);color:var(--cream);align-self:flex-end}
+.bubble.wait{background:transparent;border:1.5px dashed var(--line);color:var(--muted);align-self:flex-end;font-style:italic}
+.askrow{display:flex;gap:8px;margin-top:12px}
+.askrow input{flex:1}
+
+/* Admin */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.stat .v{font-family:var(--display);font-size:26px;font-weight:700;color:var(--pine)}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.phase-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.phase-open{background:#e3f2ea;color:var(--pine)}
+.phase-closed{background:#fbf0d9;color:#7a5a12}
+.phase-revealed{background:#fbe3e8;color:var(--berry-2)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+table.people{width:100%;border-collapse:collapse;font-size:14px}
+table.people th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.people td{padding:10px;border-bottom:1px solid #f0e9da;vertical-align:middle}
+table.people td.r{text-align:right;white-space:nowrap}
+.tablewrap{overflow-x:auto}
+
+/* Toast + modal */
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.3s;z-index:100;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-bg{position:fixed;inset:0;background:rgba(14,30,24,.55);display:grid;place-items:center;z-index:90;padding:20px;animation:fade .2s}
+.modal{background:var(--paper);border-radius:var(--radius);padding:26px;max-width:440px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+.modal h3{font-size:24px;margin-bottom:8px}
+.modal p{color:var(--muted);margin:0 0 20px}
+.modal .actions{justify-content:flex-end}
+@keyframes fade{from{opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:80}
+.spinner{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--berry);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{padding:80px 0;text-align:center;color:var(--muted)}
+
+/* Print */
+#print-area{display:none}
+@media print{
+  body{background:#fff}
+  body > *:not(#print-area){display:none !important}
+  #print-area{display:block;font-family:Georgia,serif;color:#000;padding:10px 6px}
+  #print-area h1{font-size:28px;margin:0 0 2px;color:#000}
+  #print-area .pmeta{font-size:12px;color:#444;margin-bottom:18px;font-family:Arial,sans-serif}
+  #print-area .prow{border-bottom:1px solid #ccc;padding:9px 0;page-break-inside:avoid}
+  #print-area .pq{font-family:Arial,sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#555}
+  #print-area .pa{font-size:15px;margin-top:2px;white-space:pre-wrap}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div id="demo-bar" class="demo-bar" hidden>Demo mode: everything is saved only in this browser. Admin passcode is <b>demo</b>. <button id="demo-reset" type="button">Reset demo</button></div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#home">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="13" width="22" height="16" rx="2.5" fill="#b0283f"/><rect x="3" y="9" width="26" height="6" rx="2" fill="#c2304a"/><rect x="14" y="9" width="4" height="20" fill="#c8a24a"/><path d="M16 9c-3-6-9-5-8-1 1 3 6 2 8 1zm0 0c3-6 9-5 8-1-1 3-6 2-8 1z" fill="none" stroke="#c8a24a" stroke-width="2"/></svg>
+      <span id="brand-name">OMAG Gift Exchange</span>
+    </a>
+    <nav class="links" id="nav"></nav>
+  </div>
+</header>
+<main id="app"><div class="loading"><span class="spinner"></span></div></main>
+<footer>
+  <div class="wrap">Made with care for the OMAG team · <a href="#lost">Lost your link?</a> · <a href="#admin">Organizer</a></div>
+</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti"></canvas>
+<div id="print-area"></div>
+
+<script>
+/* =====================================================================
+   Utilities
+   ===================================================================== */
+const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const safe = (fn, fallback = null) => { try { return fn(); } catch { return fallback; } };
+const local = {
+  get: k => safe(() => localStorage.getItem(k)),
+  set: (k, v) => safe(() => localStorage.setItem(k, v)),
+  del: k => safe(() => localStorage.removeItem(k)),
+};
+const session = {
+  get: k => safe(() => sessionStorage.getItem(k)),
+  set: (k, v) => safe(() => sessionStorage.setItem(k, v)),
+  del: k => safe(() => sessionStorage.removeItem(k)),
+};
+let memToken = null, memAdmin = null; // fallbacks if storage is blocked
+const getToken = () => local.get("gx_token") || memToken;
+const setToken = t => { memToken = t; t ? local.set("gx_token", t) : local.del("gx_token"); };
+const getAdminKey = () => session.get("gx_admin") || memAdmin;
+const setAdminKey = k => { memAdmin = k; k ? session.set("gx_admin", k) : session.del("gx_admin"); };
+
+function fmtDate(iso, opts) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleString("en-US", opts || { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+const fmtDay = iso => fmtDate(iso, { month: "short", day: "numeric" });
+function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso); if (isNaN(d)) return "";
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const fromLocalInput = v => v ? new Date(v).toISOString() : "";
+const firstName = n => String(n || "").trim().split(/\s+/)[0] || "";
+const initials = n => String(n || "?").trim().split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+const AV_COLORS = ["#b0283f", "#165141", "#a8852f", "#3a6a9a", "#7a3b69", "#1f6a55"];
+const avColor = n => AV_COLORS[[...String(n)].reduce((a, c) => a + c.charCodeAt(0), 0) % AV_COLORS.length];
+
+function toast(msg, ms = 3200) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+function confirmBox(title, body, okLabel = "Continue", danger = false) {
+  return new Promise(resolve => {
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><p>${esc(body)}</p>
+      <div class="actions"><button class="btn btn-ghost btn-sm" data-x="0">Cancel</button>
+      <button class="btn ${danger ? "btn-primary" : "btn-pine"} btn-sm" data-x="1">${esc(okLabel)}</button></div></div>`;
+    const done = v => { bg.remove(); resolve(v); };
+    bg.addEventListener("click", e => { if (e.target === bg) done(false); const x = e.target.closest("[data-x]"); if (x) done(x.dataset.x === "1"); });
+    document.body.appendChild(bg);
+    $("[data-x='1']", bg).focus();
+  });
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast("Copied!"); }
+  catch { toast("Couldn't copy automatically. Select the text and copy it."); }
+}
+function questionLabel(id) { return (CONFIG.QUESTIONS.find(q => q.id === id) || {}).label || id; }
+
+function phaseOf(c, now = Date.now()) {
+  const reveal = c.revealAt ? Date.parse(c.revealAt) : NaN;
+  const dl = c.signupDeadline ? Date.parse(c.signupDeadline) : NaN;
+  if (c.drawnAt && (isNaN(reveal) || now >= reveal)) return "revealed";
+  if (c.drawnAt || (!isNaN(dl) && now >= dl)) return "closed";
+  return "open";
+}
+
+/* =====================================================================
+   API — Supabase RPC (or the in-browser demo backend)
+   ===================================================================== */
+async function rpc(fn, args = {}) {
+  if (DEMO) return Mock.call(fn, args);
+  const key = CONFIG.SUPABASE_ANON_KEY;
+  const headers = { apikey: key, "content-type": "application/json" };
+  if (key.startsWith("eyJ")) headers.Authorization = `Bearer ${key}`; // legacy JWT anon keys
+  let res;
+  try {
+    res = await fetch(`${CONFIG.SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/${fn}`, { method: "POST", headers, body: JSON.stringify(args) });
+  } catch { throw new Error("Can't reach the server. Check your connection and try again."); }
+  const text = await res.text();
+  const data = safe(() => (text ? JSON.parse(text) : null));
+  if (!res.ok) throw new Error((data && data.message) || "Something went wrong. Please try again.");
+  return data;
+}
+
+/* =====================================================================
+   Demo backend — mirrors supabase/schema.sql, stored in localStorage
+   ===================================================================== */
+const Mock = {
+  key: "gx_demo_state_v1", mem: null,
+  load() {
+    if (this.mem) return this.mem;
+    this.mem = safe(() => JSON.parse(localStorage.getItem(this.key))) || this.seed();
+    return this.mem;
+  },
+  save() { local.set(this.key, JSON.stringify(this.mem)); },
+  reset() { this.mem = this.seed(); this.save(); setToken(null); },
+  uid() { return (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)); },
+  seed() {
+    const now = Date.now(), day = 864e5;
+    const people = [
+      ["Avery Collins", { sweet: "Peanut butter cups", drink: "Iced vanilla latte", need: "A good desk lamp", want: "Cozy throw blanket", scent: "Vanilla & sandalwood", colors: "Sage green, cream", hobbies: "Pickleball, true crime podcasts", stores: "Target, Barnes & Noble", size: "M", avoid: "Tree nuts, please!" }],
+      ["Jordan Reyes", { sweet: "Sour gummy worms", salty: "Takis", drink: "Dr Pepper", need: "Phone car mount", want: "Thunder hoodie", scent: "Citrus", colors: "Blue, orange", hobbies: "Thunder basketball, grilling", stores: "Academy, Whataburger", size: "L" }],
+      ["Taylor Nguyen", { sweet: "Dark chocolate", drink: "Green tea", need: "Reusable water bottle", want: "Houseplant!", scent: "Eucalyptus", colors: "Emerald", hobbies: "Plants, yoga, baking", stores: "Trader Joe's, TJ Maxx", size: "S", avoid: "No more mugs, I have 40" }],
+      ["Morgan Blake", { sweet: "Cinnamon rolls", salty: "Pretzels", drink: "Black coffee", need: "Ice scraper", want: "Puzzle (1000 pc)", scent: "Pine", colors: "Navy and gold", hobbies: "Puzzles, OU football", stores: "Hobby Lobby", size: "XL" }],
+      ["Casey Patel", { sweet: "Macarons", drink: "Chai", need: "Notebook", want: "Nice pens", scent: "Lavender", colors: "Purple", hobbies: "Journaling, hiking", stores: "Anthropologie, Panera", size: "M" }],
+      ["Riley Brooks", { sweet: "Anything caramel", salty: "Popcorn", drink: "Coke Zero", need: "Lunch bag", want: "Movie theater gift card", scent: "Cotton / clean laundry", colors: "Red", hobbies: "Movies, fishing", stores: "Bass Pro, Chili's", size: "2XL" }],
+    ].map(([name, answers], i) => ({
+      id: this.uid(), name, email: name.toLowerCase().replace(/\s+/g, ".") + "@example.org", answers,
+      token: "seed-" + i, assignedTo: null, joinedAt: new Date(now - (8 - i) * day * 0.6).toISOString(), updatedAt: null,
+    }));
+    const y = new Date().getFullYear();
+    return {
+      config: {
+        eventName: "OMAG Holiday Gift Exchange", budget: "$25", exchangeDate: "Wed, Dec 16 · Staff holiday lunch",
+        location: "OMAG Training Room", notes: "", allowedDomain: "", showMatchesToAdmin: false, siteUrl: "",
+        emailEnabled: false, signupDeadline: new Date(y, 11, 4, 17, 0).toISOString(),
+        revealAt: new Date(y, 11, 8, 9, 0).toISOString(), drawnAt: null, emailsSentAt: null,
+      },
+      people, messages: [], adminKey: "demo",
+    };
+  },
+  me(s, token) {
+    const p = s.people.find(x => x.token === token && token);
+    if (!p) throw new Error("That personal link isn't valid. Use \"Lost your link?\" to get a fresh one.");
+    return p;
+  },
+  admin(s, key) { if (key !== s.adminKey) throw new Error("Incorrect admin passcode."); },
+  clean(a) {
+    const o = {};
+    Object.entries(a || {}).slice(0, 40).forEach(([k, v]) => { if (/^[A-Za-z0-9_-]{1,40}$/.test(k) && String(v ?? "").trim()) o[k] = String(v).trim().slice(0, 1000); });
+    return o;
+  },
+  pub(c) { const { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain } = c; return { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain }; },
+  draw(s) {
+    if (s.people.length < 3) throw new Error(`You need at least 3 people to draw names (currently ${s.people.length}).`);
+    const ids = s.people.map(p => p.id);
+    for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    ids.forEach((id, i) => { s.people.find(p => p.id === id).assignedTo = ids[(i + 1) % ids.length]; });
+    s.messages = [];
+    s.config.drawnAt = new Date().toISOString(); s.config.emailsSentAt = null;
+    // Demo nicety: the Secret Santa of any real demo user asks them a question.
+    s.people.filter(p => !p.token.startsWith("seed-")).forEach(p => {
+      const santa = s.people.find(x => x.assignedTo === p.id);
+      if (santa) s.messages.push({ id: this.uid(), giverId: santa.id, recipientId: p.id, question: "Do you prefer sweet or salty snacks? 🍫🥨", answer: null, askedAt: new Date().toISOString(), answeredAt: null });
+    });
+  },
+  async call(fn, a) {
+    await sleep(220);
+    const s = this.load();
+    const f = this.fns[fn];
+    if (!f) throw new Error("Unknown function " + fn);
+    const out = f.call(this, s, a);
+    this.save();
+    return JSON.parse(JSON.stringify(out ?? null));
+  },
+  fns: {
+    gx_get_public(s) {
+      return { config: this.pub(s.config), phase: phaseOf(s.config), emailEnabled: s.config.emailEnabled, now: new Date().toISOString(),
+        participants: [...s.people].sort((a, b) => a.joinedAt.localeCompare(b.joinedAt)).map(p => ({ name: p.name, joinedAt: p.joinedAt })) };
+    },
+    gx_signup(s, { p_name, p_email, p_answers }) {
+      const c = s.config, name = String(p_name || "").trim().slice(0, 80), email = String(p_email || "").trim().toLowerCase();
+      if (phaseOf(c) !== "open") throw new Error("Sign-ups are closed.");
+      if (!name) throw new Error("Please enter your name.");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Please enter a valid email address.");
+      if (c.allowedDomain && !email.endsWith("@" + c.allowedDomain.toLowerCase())) throw new Error(`Please use your @${c.allowedDomain} email address.`);
+      if (s.people.some(p => p.email === email)) throw new Error("That email is already signed up. Use \"Lost your link?\" to get your link again.");
+      const p = { id: this.uid(), name, email, answers: this.clean(p_answers), token: "demo-" + this.uid(), assignedTo: null, joinedAt: new Date().toISOString(), updatedAt: null };
+      s.people.push(p);
+      return { token: p.token, id: p.id, emailEnabled: c.emailEnabled };
+    },
+    gx_resend_link(s) { return { ok: !!s.config.emailEnabled, emailEnabled: !!s.config.emailEnabled }; },
+    gx_get_me(s, { p_token }) {
+      const p = this.me(s, p_token), c = s.config, ph = phaseOf(c);
+      let recipient = null, sent = [], received = [];
+      if (ph === "revealed" && p.assignedTo) {
+        const r = s.people.find(x => x.id === p.assignedTo);
+        recipient = { name: r.name, answers: r.answers };
+        const santa = s.people.find(x => x.assignedTo === p.id);
+        sent = s.messages.filter(m => m.giverId === p.id && m.recipientId === r.id);
+        received = s.messages.filter(m => m.recipientId === p.id && santa && m.giverId === santa.id);
+      }
+      const strip = m => ({ id: m.id, question: m.question, answer: m.answer, askedAt: m.askedAt, answeredAt: m.answeredAt });
+      return { me: { id: p.id, name: p.name, email: p.email, answers: p.answers }, config: this.pub(c), phase: ph, drawn: !!c.drawnAt,
+        recipient, sentQuestions: sent.map(strip), receivedQuestions: received.map(strip) };
+    },
+    gx_update_me(s, { p_token, p_name, p_answers }) {
+      const p = this.me(s, p_token);
+      if (String(p_name || "").trim()) p.name = String(p_name).trim().slice(0, 80);
+      p.answers = this.clean(p_answers); p.updatedAt = new Date().toISOString();
+      return { ok: true };
+    },
+    gx_withdraw_me(s, { p_token }) {
+      const p = this.me(s, p_token);
+      if (s.config.drawnAt) throw new Error("Names have already been drawn. Please talk to the organizer.");
+      s.people = s.people.filter(x => x.id !== p.id);
+      return { ok: true };
+    },
+    gx_ask(s, { p_token, p_question }) {
+      const p = this.me(s, p_token), q = String(p_question || "").trim().slice(0, 500);
+      if (phaseOf(s.config) !== "revealed" || !p.assignedTo) throw new Error("You can ask questions once names are revealed.");
+      if (!q) throw new Error("Type a question first.");
+      const r = s.people.find(x => x.id === p.assignedTo);
+      const m = { id: this.uid(), giverId: p.id, recipientId: r.id, question: q, answer: null, askedAt: new Date().toISOString(), answeredAt: null };
+      if (r.token.startsWith("seed-")) { m.answer = "Great question! Honestly, anything from my list makes me happy. 🎄"; m.answeredAt = new Date().toISOString(); }
+      s.messages.push(m);
+      return { ok: true };
+    },
+    gx_reply(s, { p_token, p_id, p_answer }) {
+      const p = this.me(s, p_token), a = String(p_answer || "").trim().slice(0, 500);
+      if (!a) throw new Error("Type an answer first.");
+      const m = s.messages.find(x => x.id === p_id && x.recipientId === p.id);
+      if (!m) throw new Error("Question not found.");
+      m.answer = a; m.answeredAt = new Date().toISOString();
+      return { ok: true };
+    },
+    gx_admin_get(s, { p_key }) {
+      this.admin(s, p_key);
+      const c = s.config;
+      return { config: { ...c }, phase: phaseOf(c), pendingEmails: 0, failedEmails: 0,
+        people: s.people.map(p => ({ id: p.id, name: p.name, email: p.email, joinedAt: p.joinedAt, updatedAt: p.updatedAt,
+          answerCount: Object.keys(p.answers).length,
+          assignedToName: c.showMatchesToAdmin ? (s.people.find(x => x.id === p.assignedTo) || {}).name || null : null })) };
+    },
+    gx_admin_save(s, { p_key, p_cfg }) {
+      this.admin(s, p_key);
+      const c = s.config;
+      ["eventName", "budget", "exchangeDate", "location", "notes", "siteUrl"].forEach(k => { if (k in p_cfg) c[k] = String(p_cfg[k] ?? "").trim(); });
+      if (!c.eventName) c.eventName = "OMAG Holiday Gift Exchange";
+      if ("allowedDomain" in p_cfg) c.allowedDomain = String(p_cfg.allowedDomain || "").trim().replace(/^@/, "").toLowerCase();
+      ["signupDeadline", "revealAt"].forEach(k => { if (k in p_cfg) c[k] = p_cfg[k] || null; });
+      ["showMatchesToAdmin", "emailEnabled"].forEach(k => { if (k in p_cfg) c[k] = !!p_cfg[k]; });
+      return { ok: true };
+    },
+    gx_admin_draw(s, { p_key }) { this.admin(s, p_key); if (s.config.drawnAt) throw new Error("Names are already drawn. Reset first to redraw."); this.draw(s); return { ok: true }; },
+    gx_admin_reveal_now(s, { p_key }) { this.admin(s, p_key); if (!s.config.drawnAt) this.draw(s); s.config.revealAt = new Date().toISOString(); return { ok: true }; },
+    gx_admin_reset(s, { p_key }) { this.admin(s, p_key); s.messages = []; s.people.forEach(p => p.assignedTo = null); s.config.drawnAt = null; s.config.emailsSentAt = null; return { ok: true }; },
+    gx_admin_resend_reveal(s, { p_key }) { this.admin(s, p_key); if (phaseOf(s.config) !== "revealed") throw new Error("Names haven't been revealed yet."); return { ok: true }; },
+    gx_admin_send_link(s, { p_key }) { this.admin(s, p_key); if (!s.config.emailEnabled) throw new Error("Email is turned off. Turn it on in Settings first."); return { ok: true }; },
+    gx_admin_remove(s, { p_key, p_id }) {
+      this.admin(s, p_key);
+      if (s.config.drawnAt) throw new Error("Reset the draw before removing someone (removing them would break the loop).");
+      s.people = s.people.filter(p => p.id !== p_id); return { ok: true };
+    },
+    gx_admin_change_passcode(s, { p_key, p_new }) { this.admin(s, p_key); if (String(p_new || "").length < 8) throw new Error("Use at least 8 characters."); s.adminKey = p_new; return { ok: true }; },
+  },
+};
+
+/* =====================================================================
+   Router
+   ===================================================================== */
+const ROUTES = { home: viewHome, join: viewJoin, me: viewMe, lost: viewLost, admin: viewAdmin };
+let tickTimer = null;
+let PUB = null; // last public data
+
+function route() { const h = (location.hash || "").replace(/^#\/?/, "").split(/[?&/]/)[0]; return ROUTES[h] ? h : "home"; }
+async function render() {
+  clearInterval(tickTimer);
+  const r = route();
+  renderNav(r);
+  const app = $("#app");
+  app.innerHTML = `<div class="loading"><span class="spinner"></span></div>`;
+  try { await ROUTES[r](app); }
+  catch (e) { app.innerHTML = `<div class="wrap page"><div class="card"><h2>Hmm, something went wrong</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-pine" href="#home">Back to home</a></div></div>`; }
+  window.scrollTo(0, 0);
+}
+function renderNav(r) {
+  const tok = getToken();
+  const open = !PUB || PUB.phase === "open";
+  const items = [["home", "Home"]];
+  if (tok) items.push(["me", "My page"]);
+  else if (open) items.push(["join", "Join the exchange", true]);
+  $("#nav").innerHTML = items.map(([k, label, cta]) => `<a href="#${k}" class="${cta ? "cta" : ""} ${r === k ? "on" : ""}">${esc(label)}</a>`).join("");
+}
+async function loadPublic() {
+  PUB = await rpc("gx_get_public");
+  $("#brand-name").textContent = PUB.config.eventName || "Gift Exchange";
+  document.title = PUB.config.eventName || "Gift Exchange";
+  return PUB;
+}
+
+/* =====================================================================
+   Views
+   ===================================================================== */
+function countdownHTML(target, label) {
+  return `<div class="cd-label">${esc(label)}</div>
+    <div class="countdown" data-target="${esc(target)}">
+      ${["days", "hours", "min", "sec"].map(u => `<div class="cd-tile"><div class="cd-num" data-u="${u}">--</div><div class="cd-unit">${u}</div></div>`).join("")}
+    </div>`;
+}
+function startCountdown(onZero) {
+  const el = $(".countdown"); if (!el) return;
+  const target = Date.parse(el.dataset.target);
+  const tick = () => {
+    let s = Math.max(0, Math.floor((target - Date.now()) / 1000));
+    const v = { days: Math.floor(s / 86400), hours: Math.floor(s % 86400 / 3600), min: Math.floor(s % 3600 / 60), sec: s % 60 };
+    Object.entries(v).forEach(([u, n]) => { const x = $(`[data-u="${u}"]`, el); if (x) x.textContent = String(n).padStart(2, "0"); });
+    if (s === 0) { clearInterval(tickTimer); onZero && setTimeout(onZero, 1500); }
+  };
+  tick(); tickTimer = setInterval(tick, 1000);
+}
+
+async function viewHome(app) {
+  const d = await loadPublic(); renderNav("home");
+  const c = d.config, tok = getToken();
+  let cd = "";
+  if (d.phase === "open" && c.signupDeadline) cd = countdownHTML(c.signupDeadline, "Sign-ups close in");
+  else if (d.phase === "open" && c.revealAt) cd = countdownHTML(c.revealAt, "Names revealed in");
+  else if (d.phase === "closed" && c.revealAt) cd = countdownHTML(c.revealAt, "Names revealed in");
+
+  let headline, lead, actions;
+  if (d.phase === "revealed") {
+    headline = `The names are <em>out!</em>`;
+    lead = "Open your personal page to see who you're shopping for and their whole wish list.";
+    actions = tok ? `<a class="btn btn-gold" href="#me">🎁 See who I drew</a>` : `<a class="btn btn-gold" href="#lost">Find my personal link</a>`;
+  } else if (d.phase === "closed") {
+    headline = `The list is <em>sealed.</em>`;
+    lead = "Sign-ups are closed. Names will be drawn and revealed soon. Keep an eye on your inbox.";
+    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>` : "";
+  } else {
+    headline = `Let's spread some <em>cheer.</em>`;
+    lead = "Fill out your wish list, we'll draw names, and on reveal day you'll find out who you're shopping for, with their list ready to go.";
+    actions = tok ? `<a class="btn btn-gold" href="#me">View / edit my wish list</a>`
+                  : `<a class="btn btn-primary" href="#join">Join the exchange</a><a class="btn btn-ghost" href="#lost" style="color:var(--cream)">Already joined?</a>`;
+  }
+
+  const people = d.participants;
+  app.innerHTML = `
+  <section class="hero">
+    <canvas id="snow" aria-hidden="true"></canvas>
+    <div class="ornaments" aria-hidden="true">${ornament(110, "#b0283f")}${ornament(170, "#c8a24a")}${ornament(80, "#fbf5e9")}</div>
+    <div class="wrap">
+      <div class="eyebrow">OMAG Staff · ${new Date().getFullYear()}</div>
+      <h1>${headline}</h1>
+      <p class="lead">${esc(lead)}</p>
+      ${cd}
+      <div class="hero-actions">${actions}</div>
+    </div>
+  </section>
+  <div class="wrap">
+    <div class="facts">
+      <div class="fact"><div class="k">Spending limit</div><div class="v">${esc(c.budget || "Up to you")}</div></div>
+      <div class="fact"><div class="k">Exchange day</div><div class="v">${esc(c.exchangeDate || "TBA")}</div></div>
+      <div class="fact"><div class="k">Sign-ups close</div><div class="v">${esc(fmtDate(c.signupDeadline) || "TBA")}</div></div>
+      <div class="fact"><div class="k">Names revealed</div><div class="v">${esc(fmtDate(c.revealAt) || "TBA")}</div></div>
+    </div>
+    ${c.location || c.notes ? `<p class="note" style="margin-top:16px">${c.location ? `📍 <b>${esc(c.location)}</b>` : ""}${c.location && c.notes ? " · " : ""}${esc(c.notes)}</p>` : ""}
+
+    <section class="block">
+      <div class="sec-head">
+        <div><h2>Who's in</h2><p>${people.length ? "Everyone who's added their wish list so far." : "Be the first name on the list!"}</p></div>
+        <span class="count-pill">${people.length} ${people.length === 1 ? "person" : "people"}</span>
+      </div>
+      ${people.length ? `<div class="board">${people.map((p, i) => `
+        <div class="tag" style="--r:${((i * 37) % 7 - 3) * 0.6}deg;animation-delay:${Math.min(i, 20) * 40}ms">
+          <div class="av" style="background:${avColor(p.name)}">${esc(initials(p.name))}</div>
+          <div><div class="nm">${esc(p.name)}</div><div class="when">Joined ${esc(fmtDay(p.joinedAt))}</div></div>
+        </div>`).join("")}</div>`
+      : `<div class="empty">No one has joined yet. ${d.phase === "open" ? `<a href="#join">Add your wish list</a> to get things started.` : ""}</div>`}
+    </section>
+
+    <section class="block">
+      <div class="sec-head"><h2>How it works</h2></div>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Make your list</h3><p>Tell your Secret Santa what you love: sweets, scents, sizes, wants and needs.</p></div>
+        <div class="step"><div class="n">2</div><h3>We draw names</h3><p>At reveal time, everyone gets someone. Nobody draws themselves, and nobody can peek.</p></div>
+        <div class="step"><div class="n">3</div><h3>Shop &amp; surprise</h3><p>See your person's list, ask them questions anonymously, and bring your gift on exchange day.</p></div>
+      </div>
+    </section>
+  </div>`;
+  startSnow($("#snow"));
+  startCountdown(() => render());
+}
+
+function ornament(len, color) {
+  return `<svg class="orn" width="44" height="${len + 50}" viewBox="0 0 44 ${len + 50}"><line x1="22" y1="0" x2="22" y2="${len}" stroke="rgba(251,245,233,.35)" stroke-width="1.5"/>
+    <rect x="16" y="${len - 4}" width="12" height="9" rx="2" fill="#c8a24a"/><circle cx="22" cy="${len + 22}" r="19" fill="${color}"/>
+    <ellipse cx="15" cy="${len + 14}" rx="5" ry="7" fill="rgba(255,255,255,.35)" transform="rotate(30 15 ${len + 14})"/></svg>`;
+}
+
+function fieldHTML(q, val) {
+  const v = esc(val || "");
+  let input;
+  if (q.type === "textarea") input = `<textarea name="${esc(q.id)}" placeholder="${esc(q.placeholder || "")}" maxlength="1000">${v}</textarea>`;
+  else if (q.type === "select") input = `<select name="${esc(q.id)}">${(q.options || []).map(o => `<option value="${esc(o)}" ${o === val ? "selected" : ""}>${esc(o || "Choose…")}</option>`).join("")}</select>`;
+  else input = `<input type="text" name="${esc(q.id)}" value="${v}" placeholder="${esc(q.placeholder || "")}" maxlength="1000">`;
+  return `<label class="f ${q.type === "textarea" ? "full" : ""}"><span>${esc(q.label)}</span>${q.hint ? `<small>${esc(q.hint)}</small>` : ""}${input}</label>`;
+}
+function collectAnswers(form) {
+  const a = {};
+  CONFIG.QUESTIONS.forEach(q => { const el = form.elements[q.id]; if (el && el.value.trim()) a[q.id] = el.value.trim(); });
+  return a;
+}
+
+async function viewJoin(app) {
+  const d = await loadPublic(); renderNav("join");
+  if (getToken()) { location.hash = "#me"; return; }
+  if (d.phase !== "open") {
+    app.innerHTML = `<div class="wrap page"><div class="card"><h2>Sign-ups are closed</h2><p class="sub">This year's list is sealed. If you think you should be on it, talk to the organizer.</p><a class="btn btn-pine" href="#home">Back to home</a></div></div>`;
+    return;
+  }
+  const dom = d.config.allowedDomain;
+  app.innerHTML = `
+  <div class="wrap page">
+    <h1 class="page-title">Make your wish list</h1>
+    <p class="page-sub">Your Secret Santa will see this list on reveal day. Fill in as much or as little as you like. You can come back and edit it any time.</p>
+    <form class="card" id="join-form" novalidate>
+      <div class="grid2">
+        <label class="f"><span>Your name</span><input type="text" name="name" required maxlength="80" autocomplete="name" placeholder="First and last name"></label>
+        <label class="f"><span>Your email</span><input type="email" name="email" required maxlength="200" autocomplete="email" placeholder="${dom ? "you@" + esc(dom) : "you@omag.org"}"></label>
+      </div>
+      <div class="divider">your wish list</div>
+      <div class="grid2">${CONFIG.QUESTIONS.map(q => fieldHTML(q, "")).join("")}</div>
+      <div id="join-err"></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">🎁 Add me to the exchange</button><span style="color:var(--muted);font-size:13px">We'll ${d.emailEnabled ? "email you" : "give you"} a personal link to get back in.</span></div>
+    </form>
+  </div>`;
+  $("#join-form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target, btn = $("button[type=submit]", f);
+    $("#join-err").innerHTML = "";
+    btn.disabled = true; btn.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Saving…`;
+    try {
+      const r = await rpc("gx_signup", { p_name: f.elements.name.value, p_email: f.elements.email.value, p_answers: collectAnswers(f) });
+      setToken(r.token);
+      showJoined(app, r, d);
+      burst();
+    } catch (err) {
+      $("#join-err").innerHTML = `<div class="err">${esc(err.message)}</div>`;
+      btn.disabled = false; btn.textContent = "🎁 Add me to the exchange";
+    }
+  });
+}
+function personalLink(token) {
+  const base = location.href.split("#")[0].split("?")[0];
+  return `${base}?t=${encodeURIComponent(token)}#me`;
+}
+function showJoined(app, r, d) {
+  renderNav("join");
+  const link = personalLink(r.token);
+  app.innerHTML = `
+  <div class="wrap page">
+    <div class="card rcard" style="text-align:center;max-width:640px;margin:0 auto">
+      <div style="font-size:54px">🎉</div>
+      <h1 class="page-title" style="margin-top:6px">You're on the list!</h1>
+      <p class="sub" style="margin-top:10px">${r.emailEnabled ? "We just emailed you a personal link. " : ""}This link is how you'll see who you drew on reveal day, so ${r.emailEnabled ? "keep that email handy" : "save it somewhere safe"}. This browser will also remember you.</p>
+      <div class="linkbox"><input type="text" readonly value="${esc(link)}" aria-label="Your personal link"><button class="btn btn-pine btn-sm" type="button" id="copy-link">Copy</button></div>
+      <div class="form-actions" style="justify-content:center"><a class="btn btn-primary" href="#me">Go to my page</a><a class="btn btn-ghost" href="#home">See who's in</a></div>
+    </div>
+  </div>`;
+  $("#copy-link").onclick = () => copyText(link);
+}
+
+async function viewLost(app) {
+  const d = await loadPublic(); renderNav("lost");
+  app.innerHTML = `
+  <div class="wrap page" style="max-width:640px">
+    <h1 class="page-title">Lost your link?</h1>
+    <p class="page-sub">${d.emailEnabled ? "Enter the email you signed up with and we'll send your personal link again." : "Email isn't turned on for this exchange yet. Ask the organizer to resend your link."}</p>
+    ${d.emailEnabled ? `<form class="card" id="lost-form">
+      <label class="f"><span>Your email</span><input type="email" name="email" required autocomplete="email"></label>
+      <div id="lost-msg"></div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Email me my link</button></div>
+    </form>` : `<a class="btn btn-pine" href="#home">Back to home</a>`}
+  </div>`;
+  const f = $("#lost-form");
+  if (f) f.addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = $("button", f); btn.disabled = true;
+    try {
+      await rpc("gx_resend_link", { p_email: f.elements.email.value });
+      $("#lost-msg").innerHTML = `<p class="note" style="margin-top:16px">If that email is on the list, your link is on its way. Check your inbox (and junk folder) in a minute or two.</p>`;
+    } catch (err) { $("#lost-msg").innerHTML = `<div class="err">${esc(err.message)}</div>`; btn.disabled = false; }
+  });
+}
+
+/* ---------- My page ---------- */
+let ME = null;
+async function viewMe(app) {
+  const tok = getToken();
+  if (!tok) {
+    await loadPublic(); renderNav("me");
+    app.innerHTML = `<div class="wrap page" style="max-width:640px"><div class="card"><h2>Open your personal link</h2>
+      <p class="sub">Your page opens from the personal link you got when you signed up. Use it on this device, or have it emailed again.</p>
+      <div class="actions"><a class="btn btn-primary" href="#lost">Email me my link</a>${!PUB || PUB.phase === "open" ? `<a class="btn btn-ghost" href="#join">Join the exchange</a>` : ""}</div></div></div>`;
+    return;
+  }
+  try { ME = await rpc("gx_get_me", { p_token: tok }); }
+  catch (e) {
+    setToken(null); renderNav("me");
+    app.innerHTML = `<div class="wrap page" style="max-width:640px"><div class="card"><h2>We couldn't find you</h2><p class="sub">${esc(e.message)}</p><a class="btn btn-primary" href="#lost">Email me my link</a></div></div>`;
+    return;
+  }
+  PUB = PUB || { phase: ME.phase, config: ME.config };
+  PUB.phase = ME.phase;
+  $("#brand-name").textContent = ME.config.eventName;
+  renderNav("me");
+  const c = ME.config, me = ME.me, rev = ME.phase === "revealed" && ME.recipient;
+
+  let status;
+  if (rev) status = `<div class="status"><div class="ic">🎁</div><div><b>Names are drawn!</b><span>Shopping budget: ${esc(c.budget || "up to you")}${c.exchangeDate ? " · Exchange: " + esc(c.exchangeDate) : ""}</span></div></div>`;
+  else if (ME.phase === "closed") status = `<div class="status"><div class="ic">🔒</div><div><b>You're in, ${esc(firstName(me.name))}. Sign-ups are closed.</b><span>${c.revealAt ? "Names revealed " + esc(fmtDate(c.revealAt)) + "." : "Names will be revealed soon."} You can still update your list.</span></div></div>`;
+  else status = `<div class="status"><div class="ic">✅</div><div><b>You're in, ${esc(firstName(me.name))}!</b><span>${c.revealAt ? "Names revealed " + esc(fmtDate(c.revealAt)) + ". " : ""}Edit your list any time before then.</span></div></div>`;
+
+  const seenKey = "gx_seen_" + me.id;
+  const seen = !!local.get(seenKey);
+
+  app.innerHTML = `
+  <div class="wrap page">
+    ${status}
+    <div class="me-grid">
+      <div>
+        ${rev ? `<div class="card" id="reveal-card">
+            ${seen ? recipientHTML() : `<div class="reveal-stage" id="stage">
+              <div class="r-eyebrow">Your Secret Santa assignment</div>
+              <button class="giftbox" id="gift" aria-label="Open your gift to see who you drew"><span class="body"></span><span class="rib-v"></span><span class="lid"></span><span class="bow"></span></button>
+              <div class="tap-hint">Tap the gift to see who you drew</div></div>`}
+          </div>
+          <div class="card" id="ask-card">${askHTML()}</div>`
+        : `<div class="card"><h2>Who did I draw?</h2><p class="sub">${ME.phase === "closed" && ME.drawn ? "Names are drawn and sealed until reveal time." : "Your person will appear here at reveal time."}</p>
+           ${c.revealAt ? countdownHTML(c.revealAt, "Reveal in") : `<p class="note">The organizer hasn't set a reveal time yet.</p>`}</div>`}
+        ${rev ? `<div class="card" id="recv-card">${receivedHTML()}</div>` : ""}
+      </div>
+      <div>
+        <div class="card" id="mylist">${myListHTML()}</div>
+      </div>
+    </div>
+  </div>`;
+
+  if (!rev) startCountdown(() => render());
+  const gift = $("#gift");
+  if (gift) gift.onclick = async () => {
+    gift.classList.add("open"); $(".tap-hint").style.opacity = 0;
+    burst();
+    await sleep(750);
+    local.set(seenKey, "1");
+    $("#reveal-card").innerHTML = recipientHTML();
+    bindRecipient();
+  };
+  bindRecipient(); bindAsk(); bindReceived(); bindMyList();
+}
+
+function wishHTML(answers) {
+  const keys = CONFIG.QUESTIONS.map(q => q.id);
+  const extra = Object.keys(answers || {}).filter(k => !keys.includes(k));
+  const rows = [...CONFIG.QUESTIONS.map(q => [q.id, q.label, q.type === "textarea"]), ...extra.map(k => [k, k, false])];
+  return `<div class="wish">${rows.map(([id, label, wide]) => {
+    const v = (answers || {})[id];
+    return `<div class="item ${wide ? "wide" : ""}"><div class="q">${esc(label)}</div><div class="a ${v ? "" : "none"}">${v ? esc(v) : "—"}</div></div>`;
+  }).join("")}</div>`;
+}
+function recipientHTML() {
+  const r = ME.recipient;
+  return `<div class="rcard">
+    <div class="r-eyebrow">You're shopping for</div>
+    <div class="r-name">${esc(r.name)}</div>
+    <div class="r-meta">Budget ${esc(ME.config.budget || "up to you")}${ME.config.exchangeDate ? " · Bring it " + esc(ME.config.exchangeDate) : ""}. Keep it a secret! 🤫</div>
+    ${wishHTML(r.answers)}
+    <div class="form-actions"><button class="btn btn-pine btn-sm" id="print-r" type="button">🖨️ Print their list</button></div>
+  </div>`;
+}
+function bindRecipient() { const b = $("#print-r"); if (b) b.onclick = () => printList(`${ME.recipient.name}'s wish list`, ME.recipient.answers); }
+
+function askHTML() {
+  const r = ME.recipient, list = ME.sentQuestions || [];
+  return `<h2>Ask ${esc(firstName(r.name))} a question</h2>
+    <p class="sub">Not sure about a size or a flavor? Ask here. ${esc(firstName(r.name))} will get it from "your Secret Santa" and won't know it's you.</p>
+    <div class="thread">${list.map(m => `<div class="bubble q"><small>You asked</small>${esc(m.question)}</div>
+      ${m.answer ? `<div class="bubble a"><small>${esc(firstName(r.name))} said</small>${esc(m.answer)}</div>` : `<div class="bubble wait">Waiting for an answer…</div>`}`).join("")}</div>
+    <form class="askrow" id="ask-form"><input type="text" name="q" maxlength="500" placeholder="e.g. Do you wear a medium or large?" aria-label="Your question"><button class="btn btn-primary btn-sm" type="submit">Send</button></form>`;
+}
+function bindAsk() {
+  const f = $("#ask-form"); if (!f) return;
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const q = f.elements.q.value.trim(); if (!q) return;
+    $("button", f).disabled = true;
+    try {
+      await rpc("gx_ask", { p_token: getToken(), p_question: q });
+      ME = await rpc("gx_get_me", { p_token: getToken() });
+      $("#ask-card").innerHTML = askHTML(); bindAsk();
+      toast("Sent anonymously 🤫");
+    } catch (err) { toast(err.message); $("button", f).disabled = false; }
+  };
+}
+function receivedHTML() {
+  const list = ME.receivedQuestions || [];
+  return `<h2>From your Secret Santa</h2>
+    <p class="sub">${list.length ? "Your Santa asked you something. Your answer goes straight back to them." : "If your Secret Santa has a question for you, it'll show up here."}</p>
+    <div class="thread">${list.map(m => `<div class="bubble q"><small>Your Secret Santa asked</small>${esc(m.question)}</div>
+      ${m.answer ? `<div class="bubble a"><small>You said</small>${esc(m.answer)}</div>`
+        : `<form class="askrow reply-form" data-id="${esc(m.id)}" style="align-self:stretch"><input type="text" name="a" maxlength="500" placeholder="Your answer" aria-label="Your answer"><button class="btn btn-pine btn-sm" type="submit">Reply</button></form>`}`).join("")}</div>`;
+}
+function bindReceived() {
+  $$(".reply-form").forEach(f => f.onsubmit = async e => {
+    e.preventDefault();
+    const a = f.elements.a.value.trim(); if (!a) return;
+    $("button", f).disabled = true;
+    try {
+      await rpc("gx_reply", { p_token: getToken(), p_id: f.dataset.id, p_answer: a });
+      ME = await rpc("gx_get_me", { p_token: getToken() });
+      $("#recv-card").innerHTML = receivedHTML(); bindReceived();
+      toast("Answer sent!");
+    } catch (err) { toast(err.message); $("button", f).disabled = false; }
+  });
+}
+
+function myListHTML(editing = false) {
+  const me = ME.me;
+  if (editing) return `<h2>Edit my wish list</h2><p class="sub">Changes show up for your Secret Santa right away.</p>
+    <form id="edit-form"><label class="f" style="margin-bottom:14px"><span>Your name</span><input type="text" name="name" value="${esc(me.name)}" maxlength="80"></label>
+    <div class="grid2">${CONFIG.QUESTIONS.map(q => fieldHTML(q, me.answers[q.id])).join("")}</div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save my list</button><button class="btn btn-ghost" type="button" id="cancel-edit">Cancel</button></div></form>`;
+  return `<h2>My wish list</h2><p class="sub">This is what your Secret Santa sees.</p>
+    ${wishHTML(me.answers)}
+    <div class="form-actions">
+      <button class="btn btn-pine btn-sm" id="edit-list" type="button">✏️ Edit my list</button>
+      <button class="btn btn-ghost btn-sm" id="print-mine" type="button">🖨️ Print</button>
+      ${!ME.drawn ? `<button class="btn btn-danger btn-sm" id="withdraw" type="button">Leave the exchange</button>` : ""}
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:16px">Signed in as ${esc(me.email)} on this device. <a href="#" id="signout">Not you?</a></p>`;
+}
+function bindMyList() {
+  const box = $("#mylist");
+  const e = $("#edit-list"); if (e) e.onclick = () => { box.innerHTML = myListHTML(true); bindMyList(); };
+  const c = $("#cancel-edit"); if (c) c.onclick = () => { box.innerHTML = myListHTML(); bindMyList(); };
+  const p = $("#print-mine"); if (p) p.onclick = () => printList(`${ME.me.name}'s wish list`, ME.me.answers);
+  const so = $("#signout"); if (so) so.onclick = ev => { ev.preventDefault(); setToken(null); location.hash = "#home"; };
+  const w = $("#withdraw"); if (w) w.onclick = async () => {
+    if (!await confirmBox("Leave the exchange?", "Your wish list will be deleted and your name removed from the board.", "Leave", true)) return;
+    try { await rpc("gx_withdraw_me", { p_token: getToken() }); setToken(null); toast("You've left the exchange."); location.hash = "#home"; }
+    catch (err) { toast(err.message); }
+  };
+  const f = $("#edit-form"); if (f) f.onsubmit = async ev => {
+    ev.preventDefault();
+    $("button[type=submit]", f).disabled = true;
+    try {
+      await rpc("gx_update_me", { p_token: getToken(), p_name: f.elements.name.value, p_answers: collectAnswers(f) });
+      ME = await rpc("gx_get_me", { p_token: getToken() });
+      box.innerHTML = myListHTML(); bindMyList(); toast("Saved! ✨");
+    } catch (err) { toast(err.message); $("button[type=submit]", f).disabled = false; }
+  };
+}
+
+function printList(title, answers) {
+  const ev = (ME && ME.config) || (PUB && PUB.config) || {};
+  const keys = CONFIG.QUESTIONS.map(q => q.id);
+  const rows = [...CONFIG.QUESTIONS.map(q => [q.label, answers[q.id]]), ...Object.keys(answers).filter(k => !keys.includes(k)).map(k => [k, answers[k]])];
+  $("#print-area").innerHTML = `<h1>${esc(title)}</h1><div class="pmeta">${esc(ev.eventName || "")}${ev.budget ? " · Budget " + esc(ev.budget) : ""}${ev.exchangeDate ? " · " + esc(ev.exchangeDate) : ""}</div>
+    ${rows.map(([q, a]) => `<div class="prow"><div class="pq">${esc(q)}</div><div class="pa">${a ? esc(a) : "—"}</div></div>`).join("")}`;
+  try { window.print(); } catch { toast("Printing isn't available here. Try from your browser's menu."); }
+}
+
+/* ---------- Admin ---------- */
+async function viewAdmin(app) {
+  renderNav("admin");
+  const key = getAdminKey();
+  if (!key) return adminLogin(app);
+  let d;
+  try { d = await rpc("gx_admin_get", { p_key: key }); }
+  catch (e) { setAdminKey(null); return adminLogin(app, e.message); }
+  const c = d.config, ph = d.phase, people = d.people;
+  $("#brand-name").textContent = c.eventName;
+
+  app.innerHTML = `
+  <div class="wrap page">
+    <div class="sec-head"><div><h1 class="page-title">Organizer</h1><p>Manage dates, the draw, and who's in.</p></div>
+      <button class="btn btn-ghost btn-sm" id="logout">Lock admin</button></div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">Participants</div><div class="v">${people.length}</div></div>
+      <div class="stat"><div class="k">Status</div><div class="v"><span class="phase-pill phase-${ph}">${ph === "open" ? "Sign-ups open" : ph === "closed" ? (c.drawnAt ? "Drawn · sealed" : "Sign-ups closed") : "Revealed"}</span></div></div>
+      <div class="stat"><div class="k">Names drawn</div><div class="v" style="font-size:18px;margin-top:6px">${c.drawnAt ? esc(fmtDate(c.drawnAt)) : "Not yet"}</div></div>
+      <div class="stat"><div class="k">Email</div><div class="v" style="font-size:18px;margin-top:6px">${c.emailEnabled ? `On${d.pendingEmails ? ` · ${d.pendingEmails} queued` : ""}${d.failedEmails ? ` · <span style="color:var(--berry)">${d.failedEmails} failed</span>` : ""}` : "Off"}</div></div>
+    </div>
+
+    <div class="card">
+      <h2>The draw</h2>
+      <p class="sub">${c.drawnAt ? (ph === "revealed" ? "Names are drawn and revealed. Everyone can see who they have." : "Names are drawn and sealed until the reveal time.")
+        : `Names draw automatically at the reveal time (${esc(fmtDate(c.revealAt) || "not set")}), or you can draw them now. It's one big loop, so nobody gets themselves and there are no two-person swaps.`}</p>
+      <div class="actions">
+        ${!c.drawnAt ? `<button class="btn btn-pine" data-act="draw">Draw names now (keep sealed)</button>` : ""}
+        ${ph !== "revealed" ? `<button class="btn btn-primary" data-act="reveal">🎁 Reveal now</button>` : ""}
+        ${ph === "revealed" && c.emailEnabled ? `<button class="btn btn-ghost" data-act="resend">Resend reveal emails</button>` : ""}
+        ${c.drawnAt ? `<button class="btn btn-danger" data-act="reset">Reset the draw</button>` : ""}
+      </div>
+    </div>
+
+    <form class="card" id="cfg-form">
+      <h2>Settings</h2><p class="sub">Shown on the home page and in emails.</p>
+      <div class="grid2">
+        <label class="f"><span>Event name</span><input type="text" name="eventName" value="${esc(c.eventName)}"></label>
+        <label class="f"><span>Spending limit</span><input type="text" name="budget" value="${esc(c.budget)}" placeholder="$25"></label>
+        <label class="f"><span>Exchange day</span><small>Free text, e.g. "Wed, Dec 16 · Staff lunch"</small><input type="text" name="exchangeDate" value="${esc(c.exchangeDate)}"></label>
+        <label class="f"><span>Location</span><small>Optional</small><input type="text" name="location" value="${esc(c.location)}"></label>
+        <label class="f"><span>Sign-ups close</span><input type="datetime-local" name="signupDeadline" value="${toLocalInput(c.signupDeadline)}"></label>
+        <label class="f"><span>Names revealed</span><small>Names draw automatically at this time</small><input type="datetime-local" name="revealAt" value="${toLocalInput(c.revealAt)}"></label>
+        <label class="f full"><span>Note on the home page</span><small>Optional, e.g. "Wrap your gift and add a name tag!"</small><input type="text" name="notes" value="${esc(c.notes)}"></label>
+        <label class="f"><span>Only allow emails ending in</span><small>e.g. omag.org (leave blank to allow any)</small><input type="text" name="allowedDomain" value="${esc(c.allowedDomain)}"></label>
+        <label class="f"><span>Site address</span><small>Used for links in emails</small><input type="text" name="siteUrl" value="${esc(c.siteUrl || "")}" placeholder="https://…"></label>
+        <label class="check full"><input type="checkbox" name="emailEnabled" ${c.emailEnabled ? "checked" : ""}><span><b>Send emails</b> (personal links, reveal notices, anonymous questions). Turn on after email setup is done.</span></label>
+        <label class="check full"><input type="checkbox" name="showMatchesToAdmin" ${c.showMatchesToAdmin ? "checked" : ""}><span><b>Show me who drew whom</b>. Leave off if you're participating too and want to be surprised.</span></label>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Save settings</button></div>
+    </form>
+
+    <div class="card">
+      <h2>Participants</h2>
+      <p class="sub">${people.length} signed up.${c.drawnAt ? " Reset the draw to remove someone." : ""}</p>
+      ${people.length ? `<div class="tablewrap"><table class="people"><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>List</th>${c.showMatchesToAdmin && c.drawnAt ? "<th>Is giving to</th>" : ""}<th></th></tr></thead><tbody>
+      ${people.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.email)}</td><td>${esc(fmtDay(p.joinedAt))}</td><td>${p.answerCount} answers</td>
+        ${c.showMatchesToAdmin && c.drawnAt ? `<td>${esc(p.assignedToName || "—")}</td>` : ""}
+        <td class="r">${c.emailEnabled ? `<button class="btn btn-ghost btn-sm" data-link="${esc(p.id)}">Email link</button> ` : ""}${!c.drawnAt ? `<button class="btn btn-danger btn-sm" data-remove="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="empty">No one yet.</div>`}
+    </div>
+
+    <form class="card" id="pass-form">
+      <h2>Change admin passcode</h2>
+      <div class="askrow"><input type="password" name="p" minlength="8" placeholder="New passcode (8+ characters)" autocomplete="new-password"><button class="btn btn-pine btn-sm" type="submit">Update</button></div>
+    </form>
+  </div>`;
+
+  const act = async (fn, msg, args = {}) => {
+    try { await rpc(fn, { p_key: key, ...args }); toast(msg); render(); }
+    catch (e) { toast(e.message, 5000); }
+  };
+  $("#logout").onclick = () => { setAdminKey(null); render(); };
+  $$("[data-act]").forEach(b => b.onclick = async () => {
+    const a = b.dataset.act;
+    if (a === "draw" && await confirmBox("Draw names now?", `Everyone currently signed up (${people.length}) will be matched. Sign-ups close, and matches stay hidden until the reveal time.`, "Draw names"))
+      act("gx_admin_draw", "Names drawn and sealed. 🎄");
+    if (a === "reveal" && await confirmBox("Reveal now?", `${c.drawnAt ? "" : "This draws names right now and "}Everyone will be able to see who they drew${c.emailEnabled ? ", and reveal emails go out" : ""}.`, "Reveal now", true))
+      act("gx_admin_reveal_now", "Revealed! 🎁");
+    if (a === "resend" && await confirmBox("Resend reveal emails?", "Everyone gets the reveal email again.", "Resend"))
+      act("gx_admin_resend_reveal", "Reveal emails queued.");
+    if (a === "reset" && await confirmBox("Reset the draw?", "All matches and anonymous questions are deleted and sign-ups reopen (if the deadline hasn't passed). People who already saw their match will get a new one when you draw again.", "Reset", true))
+      act("gx_admin_reset", "Draw reset.");
+  });
+  $$("[data-link]").forEach(b => b.onclick = () => act("gx_admin_send_link", "Link email queued.", { p_id: b.dataset.link }));
+  $$("[data-remove]").forEach(b => b.onclick = async () => {
+    if (await confirmBox(`Remove ${b.dataset.name}?`, "Their wish list is deleted.", "Remove", true)) act("gx_admin_remove", "Removed.", { p_id: b.dataset.remove });
+  });
+  $("#cfg-form").onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target, g = n => f.elements[n];
+    const cfg = {
+      eventName: g("eventName").value, budget: g("budget").value, exchangeDate: g("exchangeDate").value,
+      location: g("location").value, notes: g("notes").value, allowedDomain: g("allowedDomain").value, siteUrl: g("siteUrl").value,
+      signupDeadline: fromLocalInput(g("signupDeadline").value), revealAt: fromLocalInput(g("revealAt").value),
+      emailEnabled: g("emailEnabled").checked, showMatchesToAdmin: g("showMatchesToAdmin").checked,
+    };
+    act("gx_admin_save", "Settings saved.", { p_cfg: cfg });
+  };
+  $("#pass-form").onsubmit = async e => {
+    e.preventDefault();
+    const v = e.target.elements.p.value;
+    try { await rpc("gx_admin_change_passcode", { p_key: key, p_new: v }); setAdminKey(v); toast("Passcode updated."); e.target.reset(); }
+    catch (err) { toast(err.message); }
+  };
+}
+function adminLogin(app, err) {
+  app.innerHTML = `<div class="wrap page" style="max-width:520px">
+    <h1 class="page-title">Organizer</h1><p class="page-sub">Enter the admin passcode.</p>
+    <form class="card" id="admin-login"><label class="f"><span>Passcode</span><input type="password" name="k" required autocomplete="current-password"></label>
+      ${err ? `<div class="err">${esc(err)}</div>` : ""}
+      <div class="form-actions"><button class="btn btn-pine" type="submit">Unlock</button></div></form></div>`;
+  $("#admin-login").onsubmit = e => { e.preventDefault(); setAdminKey(e.target.elements.k.value); render(); };
+  $("#admin-login input").focus();
+}
+
+/* =====================================================================
+   Effects: snow + confetti
+   ===================================================================== */
+const reduceMotion = safe(() => matchMedia("(prefers-reduced-motion: reduce)").matches, false);
+let snowRAF = null;
+function startSnow(cv) {
+  cancelAnimationFrame(snowRAF);
+  if (!cv || reduceMotion) return;
+  const ctx = cv.getContext("2d"); let W, H, flakes;
+  const size = () => { const r = devicePixelRatio || 1; W = cv.clientWidth; H = cv.clientHeight; cv.width = W * r; cv.height = H * r; ctx.setTransform(r, 0, 0, r, 0, 0); };
+  size();
+  flakes = Array.from({ length: Math.round(W / 12) }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2.2 + .6, s: Math.random() * .5 + .25, d: Math.random() * Math.PI * 2 }));
+  addEventListener("resize", size);
+  const step = () => {
+    if (!document.body.contains(cv)) return;
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = "rgba(255,255,255,.75)";
+    for (const f of flakes) {
+      f.y += f.s; f.d += .01; f.x += Math.sin(f.d) * .3;
+      if (f.y > H + 4) { f.y = -4; f.x = Math.random() * W; }
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill();
+    }
+    snowRAF = requestAnimationFrame(step);
+  };
+  step();
+}
+function burst() {
+  if (reduceMotion) return;
+  const cv = $("#confetti"), ctx = cv.getContext("2d"), r = devicePixelRatio || 1;
+  cv.width = innerWidth * r; cv.height = innerHeight * r; ctx.setTransform(r, 0, 0, r, 0, 0);
+  const colors = ["#b0283f", "#c8a24a", "#165141", "#fbf5e9", "#3a6a9a"];
+  const parts = Array.from({ length: 160 }, () => ({
+    x: innerWidth / 2, y: innerHeight * .45, vx: (Math.random() - .5) * 14, vy: Math.random() * -14 - 4,
+    w: Math.random() * 8 + 4, h: Math.random() * 5 + 3, a: Math.random() * 6, va: (Math.random() - .5) * .3, c: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  const t0 = performance.now();
+  const step = t => {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const p of parts) { p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); }
+    if (t - t0 < 3200) requestAnimationFrame(step); else ctx.clearRect(0, 0, innerWidth, innerHeight);
+  };
+  requestAnimationFrame(step);
+}
+
+/* =====================================================================
+   Start
+   ===================================================================== */
+(function init() {
+  // Personal links look like  https://site/?t=TOKEN#me  — store the token and tidy the address bar.
+  const t = safe(() => new URLSearchParams(location.search).get("t"));
+  if (t) {
+    setToken(t);
+    safe(() => history.replaceState(null, "", location.pathname + "#me"));
+    if (!location.hash) location.hash = "#me";
+  }
+  if (DEMO) {
+    $("#demo-bar").hidden = false;
+    $("#demo-reset").onclick = () => { Mock.reset(); toast("Demo reset."); location.hash = "#home"; render(); };
+  }
+  addEventListener("hashchange", render);
+  render();
+})();
+</script>
+</body>
+</html>
