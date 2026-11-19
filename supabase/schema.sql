@@ -236,11 +236,13 @@ begin
   update gx.config set emails_sent_at = now() where id = 1;
 end $$;
 
--- Runs every 5 minutes (pg_cron): auto-draws at reveal time and sends reveal emails.
+-- Runs every 5 minutes (pg_cron), and when anyone's countdown reaches zero
+-- (public.gx_tick_now). Locks the settings row so the draw only ever happens once.
 create or replace function gx.tick() returns void
 language plpgsql as $$
-declare c gx.config := gx.cfg();
+declare c gx.config;
 begin
+  select * into c from gx.config where id = 1 for update;
   if c.drawn_at is null and c.reveal_at is not null and now() >= c.reveal_at
      and (select count(*) from gx.people) >= 3 then
     perform gx.do_draw();
@@ -433,6 +435,16 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- Called by the website when a countdown reaches zero, so names draw right
+-- on time instead of waiting for the next 5-minute scheduler run.
+-- Does nothing unless the "Names drawn" time has passed.
+create or replace function public.gx_tick_now() returns jsonb
+language plpgsql security definer set search_path = gx, public, extensions as $$
+begin
+  perform gx.tick();
+  return jsonb_build_object('phase', gx.phase(gx.cfg()));
+end $$;
+
 -- ---------------------------------------------------------------------
 --  Admin API (every call checks the admin passcode)
 -- ---------------------------------------------------------------------
@@ -596,7 +608,7 @@ declare f text;
 begin
   foreach f in array array[
     'gx_get_public()', 'gx_signup(text,text,jsonb,text)', 'gx_resend_link(text)',
-    'gx_login(text,text)', 'gx_set_pin(text,text)', 'gx_admin_reset_pin(text,uuid)',
+    'gx_login(text,text)', 'gx_set_pin(text,text)', 'gx_admin_reset_pin(text,uuid)', 'gx_tick_now()',
     'gx_get_me(text)', 'gx_update_me(text,text,jsonb)', 'gx_withdraw_me(text)',
     'gx_ask(text,text)', 'gx_reply(text,uuid,text)',
     'gx_admin_get(text)', 'gx_admin_save(text,jsonb)', 'gx_admin_draw(text)',

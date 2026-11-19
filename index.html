@@ -120,6 +120,8 @@ nav.links a.cta:hover{background:var(--berry-2)}
 .cd-num{font-family:var(--display);font-size:40px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
 .cd-unit{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.waiting{display:inline-flex;align-items:center;gap:12px;background:rgba(127,127,127,.12);border-radius:12px;padding:14px 18px;font-weight:600}
+.hero .waiting .spinner{border-color:rgba(255,255,255,.25);border-top-color:var(--gold)}
 
 /* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:13px 22px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;transition:transform .15s, background .15s, box-shadow .15s;line-height:1.1}
@@ -532,6 +534,11 @@ const Mock = {
       p.pin = String(Math.floor(Math.random() * 10000)).padStart(4, "0"); p.pinFails = 0; p.lockedUntil = 0;
       return { ok: true, pin: p.pin };
     },
+    gx_tick_now(s) {
+      const c = s.config;
+      if (!c.drawnAt && c.revealAt && Date.now() >= Date.parse(c.revealAt) && s.people.length >= 3) this.draw(s);
+      return { phase: phaseOf(c) };
+    },
     gx_resend_link(s) { return { ok: !!s.config.emailEnabled, emailEnabled: !!s.config.emailEnabled }; },
     gx_get_me(s, { p_token }) {
       const p = this.me(s, p_token), c = s.config, ph = phaseOf(c);
@@ -618,7 +625,7 @@ let PUB = null; // last public data
 
 function route() { const h = (location.hash || "").replace(/^#\/?/, "").split(/[?&/]/)[0]; return ROUTES[h] ? h : "home"; }
 async function render() {
-  clearInterval(tickTimer);
+  clearInterval(tickTimer); clearTimeout(tickTimer);
   const r = route();
   renderNav(r);
   const app = $("#app");
@@ -661,31 +668,49 @@ async function loadPublic() {
 /* =====================================================================
    Views
    ===================================================================== */
-function countdownHTML(target, label) {
-  return `<div class="cd-label">${esc(label)}</div>
+function countdownHTML(target, label, waitText) {
+  return `<div class="cd-wrap" data-wait="${esc(waitText || "Updating…")}"><div class="cd-label">${esc(label)}</div>
     <div class="countdown" data-target="${esc(target)}">
       ${["days", "hours", "min", "sec"].map(u => `<div class="cd-tile"><div class="cd-num" data-u="${u}">--</div><div class="cd-unit">${u}</div></div>`).join("")}
-    </div>`;
+    </div></div>`;
 }
-function startCountdown(onZero) {
+// Counts down; at zero it switches to a "waiting" message and checks quietly
+// until the phase actually changes, then re-renders once. (No reload loop.)
+function startCountdown(phase) {
   const el = $(".countdown"); if (!el) return;
   const target = Date.parse(el.dataset.target);
   const tick = () => {
-    let s = Math.max(0, Math.floor((target - Date.now()) / 1000));
+    const s = Math.max(0, Math.floor((target - Date.now()) / 1000));
     const v = { days: Math.floor(s / 86400), hours: Math.floor(s % 86400 / 3600), min: Math.floor(s % 3600 / 60), sec: s % 60 };
     Object.entries(v).forEach(([u, n]) => { const x = $(`[data-u="${u}"]`, el); if (x) x.textContent = String(n).padStart(2, "0"); });
-    if (s === 0) { clearInterval(tickTimer); onZero && setTimeout(onZero, 1500); }
+    if (s === 0) { clearInterval(tickTimer); waitForChange(el, phase); return true; }
+    return false;
   };
-  tick(); tickTimer = setInterval(tick, 1000);
+  if (!tick()) tickTimer = setInterval(tick, 1000);
+}
+function waitForChange(el, phase) {
+  const wrap = el.closest(".cd-wrap");
+  if (wrap) wrap.innerHTML = `<div class="cd-label">Any moment now</div><div class="waiting"><span class="spinner"></span><span>${esc(wrap.dataset.wait)}</span></div>`;
+  let tries = 0;
+  const check = async () => {
+    if (!document.body.contains(wrap)) return;           // user navigated away
+    tries++;
+    let ph = null;
+    try { ph = (await rpc("gx_tick_now")).phase; }       // draws now if it's time
+    catch { try { ph = (await rpc("gx_get_public")).phase; } catch {} }
+    if (ph && ph !== phase) { render(); return; }
+    tickTimer = setTimeout(check, tries < 6 ? 5000 : 30000);
+  };
+  tickTimer = setTimeout(check, 800);
 }
 
 async function viewHome(app) {
   const d = await loadPublic(); renderNav("home");
   const c = d.config, tok = getToken();
   let cd = "";
-  if (d.phase === "open" && c.signupDeadline) cd = countdownHTML(c.signupDeadline, "Sign-ups close in");
-  else if (d.phase === "open" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in");
-  else if (d.phase === "closed" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in");
+  if (d.phase === "open" && c.signupDeadline) cd = countdownHTML(c.signupDeadline, "Sign-ups close in", "Closing sign-ups…");
+  else if (d.phase === "open" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in", "Drawing names… this page will update on its own.");
+  else if (d.phase === "closed" && c.revealAt) cd = countdownHTML(c.revealAt, "Names drawn in", "Drawing names… this page will update on its own.");
 
   let headline, lead, actions;
   if (d.phase === "revealed") {
@@ -749,7 +774,7 @@ async function viewHome(app) {
     </section>
   </div>`;
   startSnow($("#snow"));
-  startCountdown(() => render());
+  startCountdown(d.phase);
 }
 
 function ornament(len, color) {
@@ -942,7 +967,7 @@ async function viewMe(app) {
           </div>
           <div class="card" id="ask-card">${askHTML()}</div>`
         : `<div class="card"><h2>Who did I draw?</h2><p class="sub">${ME.phase === "closed" && ME.drawn ? "Names are drawn and sealed until reveal time." : "Your person will appear here at reveal time."}</p>
-           ${c.revealAt ? countdownHTML(c.revealAt, "Reveal in") : `<p class="note">The organizer hasn't set a reveal time yet.</p>`}</div>`}
+           ${c.revealAt ? countdownHTML(c.revealAt, "Names drawn in", "Drawing names… this page will update on its own.") : `<p class="note">The organizer hasn't set a reveal time yet.</p>`}</div>`}
         ${rev ? `<div class="card" id="recv-card">${receivedHTML()}</div>` : ""}
       </div>
       <div>
@@ -951,7 +976,7 @@ async function viewMe(app) {
     </div>
   </div>`;
 
-  if (!rev) startCountdown(() => render());
+  if (!rev) startCountdown(ME.phase);
   const gift = $("#gift");
   if (gift) gift.onclick = async () => {
     gift.classList.add("open"); $(".tap-hint").style.opacity = 0;
