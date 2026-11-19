@@ -211,7 +211,7 @@ begin
   if n < 3 then
     raise exception 'You need at least 3 people to draw names (currently %).', n;
   end if;
-  delete from gx.messages;
+  delete from gx.messages where true;   -- "where true": Supabase blocks DELETE/UPDATE with no WHERE
   for i in 1..n loop
     update gx.people set assigned_to = ids[(i % n) + 1] where id = ids[i];
   end loop;
@@ -513,8 +513,8 @@ create or replace function public.gx_admin_reset(p_key text) returns jsonb
 language plpgsql security definer set search_path = gx, public, extensions as $$
 begin
   perform gx.check_admin(p_key);
-  delete from gx.messages;
-  update gx.people set assigned_to = null;
+  delete from gx.messages where true;
+  update gx.people set assigned_to = null where assigned_to is not null;
   update gx.config set drawn_at = null, emails_sent_at = null where id = 1;
   return jsonb_build_object('ok', true);
 end $$;
