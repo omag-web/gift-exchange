@@ -40,6 +40,7 @@ create table if not exists gx.config (
   admin_hash             text
 );
 insert into gx.config (id) values (1) on conflict (id) do nothing;
+alter table gx.config add column if not exists hide_participants boolean not null default false;
 
 create table if not exists gx.people (
   id                 uuid primary key default gen_random_uuid(),
@@ -255,7 +256,8 @@ language sql stable as $$
   select jsonb_build_object(
     'eventName', c.event_name, 'budget', c.budget, 'exchangeDate', c.exchange_date,
     'location', c.location, 'notes', c.notes, 'signupDeadline', c.signup_deadline,
-    'revealAt', c.reveal_at, 'allowedDomain', c.allowed_domain)
+    'revealAt', c.reveal_at, 'allowedDomain', c.allowed_domain,
+    'hideParticipants', c.hide_participants)
 $$;
 
 -- ---------------------------------------------------------------------
@@ -270,7 +272,10 @@ begin
     'phase', gx.phase(c),
     'emailEnabled', c.email_enabled,
     'now', now(),
-    'participants', coalesce((select jsonb_agg(jsonb_build_object('name', name, 'joinedAt', joined_at) order by joined_at) from gx.people), '[]'::jsonb));
+    'count', (select count(*) from gx.people),
+    -- names are never sent when the organizer hides them
+    'participants', case when c.hide_participants then '[]'::jsonb
+      else coalesce((select jsonb_agg(jsonb_build_object('name', name, 'joinedAt', joined_at) order by joined_at) from gx.people), '[]'::jsonb) end);
 end $$;
 
 create or replace function gx.check_pin(p_pin text) returns void
@@ -484,7 +489,8 @@ begin
     allowed_domain        = coalesce(lower(ltrim(btrim(p_cfg->>'allowedDomain'),'@')), allowed_domain),
     show_matches_to_admin = coalesce((p_cfg->>'showMatchesToAdmin')::boolean, show_matches_to_admin),
     site_url              = coalesce(btrim(p_cfg->>'siteUrl'), site_url),
-    email_enabled         = coalesce((p_cfg->>'emailEnabled')::boolean, email_enabled)
+    email_enabled         = coalesce((p_cfg->>'emailEnabled')::boolean, email_enabled),
+    hide_participants     = coalesce((p_cfg->>'hideParticipants')::boolean, hide_participants)
   where id = 1;
   return jsonb_build_object('ok', true);
 end $$;

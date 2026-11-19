@@ -162,6 +162,8 @@ section.block{padding:56px 0 8px}
 .tag .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;flex:none}
 .tag .nm{font-weight:700;line-height:1.2}
 .tag .when{font-size:12px;color:var(--muted)}
+.tag.mystery .av{font-family:var(--display);font-size:20px;font-weight:800}
+.tag.mystery .nm{font-family:var(--display);font-style:italic;font-weight:600}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}}
 .empty{border:2px dashed var(--line);border-radius:var(--radius);padding:36px;text-align:center;color:var(--muted);background:rgba(255,253,248,.6)}
 
@@ -474,7 +476,7 @@ const Mock = {
     Object.entries(a || {}).slice(0, 40).forEach(([k, v]) => { if (/^[A-Za-z0-9_-]{1,40}$/.test(k) && String(v ?? "").trim()) o[k] = String(v).trim().slice(0, 1000); });
     return o;
   },
-  pub(c) { const { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain } = c; return { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain }; },
+  pub(c) { const { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain } = c; return { eventName, budget, exchangeDate, location, notes, signupDeadline, revealAt, allowedDomain, hideParticipants: !!c.hideParticipants }; },
   draw(s) {
     if (s.people.length < 3) throw new Error(`You need at least 3 people to draw names (currently ${s.people.length}).`);
     const ids = s.people.map(p => p.id);
@@ -499,8 +501,8 @@ const Mock = {
   },
   fns: {
     gx_get_public(s) {
-      return { config: this.pub(s.config), phase: phaseOf(s.config), emailEnabled: s.config.emailEnabled, now: new Date().toISOString(),
-        participants: [...s.people].sort((a, b) => a.joinedAt.localeCompare(b.joinedAt)).map(p => ({ name: p.name, joinedAt: p.joinedAt })) };
+      return { config: this.pub(s.config), phase: phaseOf(s.config), emailEnabled: s.config.emailEnabled, now: new Date().toISOString(), count: s.people.length,
+        participants: s.config.hideParticipants ? [] : [...s.people].sort((a, b) => a.joinedAt.localeCompare(b.joinedAt)).map(p => ({ name: p.name, joinedAt: p.joinedAt })) };
     },
     gx_signup(s, { p_name, p_email, p_answers, p_pin }) {
       const c = s.config, name = String(p_name || "").trim().slice(0, 80), email = String(p_email || "").trim().toLowerCase();
@@ -599,7 +601,7 @@ const Mock = {
       if (!c.eventName) c.eventName = "OMAG Holiday Gift Exchange";
       if ("allowedDomain" in p_cfg) c.allowedDomain = String(p_cfg.allowedDomain || "").trim().replace(/^@/, "").toLowerCase();
       ["signupDeadline", "revealAt"].forEach(k => { if (k in p_cfg) c[k] = p_cfg[k] || null; });
-      ["showMatchesToAdmin", "emailEnabled"].forEach(k => { if (k in p_cfg) c[k] = !!p_cfg[k]; });
+      ["showMatchesToAdmin", "emailEnabled", "hideParticipants"].forEach(k => { if (k in p_cfg) c[k] = !!p_cfg[k]; });
       return { ok: true };
     },
     gx_admin_draw(s, { p_key }) { this.admin(s, p_key); if (s.config.drawnAt) throw new Error("Names are already drawn. Reset first to redraw."); this.draw(s); return { ok: true }; },
@@ -729,6 +731,8 @@ async function viewHome(app) {
   }
 
   const people = d.participants;
+  const hidden = !!c.hideParticipants;
+  const count = typeof d.count === "number" ? d.count : people.length;
   app.innerHTML = `
   <section class="hero">
     <canvas id="snow" aria-hidden="true"></canvas>
@@ -752,15 +756,20 @@ async function viewHome(app) {
 
     <section class="block">
       <div class="sec-head">
-        <div><h2>Who's in</h2><p>${people.length ? "Everyone who's added their wish list so far." : "Be the first name on the list!"}</p></div>
-        <span class="count-pill">${people.length} ${people.length === 1 ? "person" : "people"}</span>
+        <div><h2>Who's in</h2><p>${hidden ? (count ? "Names are under wraps until the big reveal. 🤫" : "Be the first one in!") : (people.length ? "Everyone who's shared their favorite things so far." : "Be the first name on the list!")}</p></div>
+        <span class="count-pill">${count} ${count === 1 ? "person" : "people"}</span>
       </div>
-      ${people.length ? `<div class="board">${people.map((p, i) => `
+      ${count === 0 ? `<div class="empty">No one has joined yet. ${d.phase === "open" ? `<a href="#join">Share your favorite things</a> to get things started.` : ""}</div>`
+      : hidden ? `<div class="board">${Array.from({ length: Math.min(count, 80) }, (_, i) => `
+        <div class="tag mystery" style="--r:${((i * 37) % 7 - 3) * 0.6}deg;animation-delay:${Math.min(i, 20) * 40}ms">
+          <div class="av" style="background:${AV_COLORS[i % AV_COLORS.length]}">?</div>
+          <div><div class="nm">Mystery elf</div><div class="when">Top secret</div></div>
+        </div>`).join("")}</div>`
+      : `<div class="board">${people.map((p, i) => `
         <div class="tag" style="--r:${((i * 37) % 7 - 3) * 0.6}deg;animation-delay:${Math.min(i, 20) * 40}ms">
           <div class="av" style="background:${avColor(p.name)}">${esc(initials(p.name))}</div>
           <div><div class="nm">${esc(p.name)}</div><div class="when">Joined ${esc(fmtDay(p.joinedAt))}</div></div>
-        </div>`).join("")}</div>`
-      : `<div class="empty">No one has joined yet. ${d.phase === "open" ? `<a href="#join">Add your wish list</a> to get things started.` : ""}</div>`}
+        </div>`).join("")}</div>`}
     </section>
 
     <section class="block">
@@ -1154,6 +1163,7 @@ async function viewAdmin(app) {
         <label class="f"><span>Names drawn</span><small>Everyone sees who they have at this time</small><input type="datetime-local" name="revealAt" value="${toLocalInput(c.revealAt)}"></label>
         <label class="f full"><span>Note on the home page</span><small>Optional, e.g. "Sock exchange: bring cheap, garish socks stuffed with treats, tied with a bow!"</small><input type="text" name="notes" value="${esc(c.notes)}"></label>
         <label class="f full"><span>Only allow sign-ups from</span><small>e.g. omag.org, so only @omag.org addresses can join (leave blank to allow any)</small><input type="text" name="allowedDomain" value="${esc(c.allowedDomain)}"></label>
+        <label class="check full"><input type="checkbox" name="hideParticipants" ${c.hideParticipants ? "checked" : ""}><span><b>Hide names on the home page</b>. Shows only how many people have joined, as mystery gift tags. Names stay hidden from everyone but you.</span></label>
         <label class="check full"><input type="checkbox" name="showMatchesToAdmin" ${c.showMatchesToAdmin ? "checked" : ""}><span><b>Show me who drew whom</b>. Leave off if you're participating too and want to be surprised.</span></label>
       </div>
       <div class="form-actions"><button class="btn btn-primary" type="submit">Save settings</button></div>
@@ -1204,7 +1214,7 @@ async function viewAdmin(app) {
       eventName: g("eventName").value, budget: g("budget").value, exchangeDate: g("exchangeDate").value,
       location: g("location").value, notes: g("notes").value, allowedDomain: g("allowedDomain").value,
       signupDeadline: fromLocalInput(g("signupDeadline").value), revealAt: fromLocalInput(g("revealAt").value),
-      showMatchesToAdmin: g("showMatchesToAdmin").checked,
+      showMatchesToAdmin: g("showMatchesToAdmin").checked, hideParticipants: g("hideParticipants").checked,
     };
     act("gx_admin_save", "Settings saved.", { p_cfg: cfg });
   };
